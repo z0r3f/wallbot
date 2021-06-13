@@ -13,7 +13,8 @@ import threading
 
 TOKEN = "SUSTITUIR-POR-EL-TOKEN-DEL-BOT-DE-TELEGRAM"
 URL = "https://api.telegram.org/bot{}/".format(TOKEN)
-URL_ITEMS = "https://es.wallapop.com/rest/items"
+# URL_ITEMS = "https://es.wallapop.com/rest/items"
+URL_ITEMS = "https://api.wallapop.com/api/v3/general/search"
 
 db = DBHelper()
 
@@ -42,22 +43,22 @@ def notel(chat_id, price, title, url_item, obs=None):
     text += '\n'
     text += 'https://es.wallapop.com/item/'
     text += url_item
-    urlz0rb0t = URL+"sendMessage?chat_id=%s&parse_mode=markdown&text=%s" % (chat_id, text)
+    urlz0rb0t = URL + "sendMessage?chat_id=%s&parse_mode=markdown&text=%s" % (chat_id, text)
     requests.get(url=urlz0rb0t)
 
 
 def get_url_list(search):
     url = URL_ITEMS
-    url += '?kws='
+    url += '?keywords='
     url += "+".join(search.kws.split(" "))
     if search.cat_ids is not None:
-        url += '&catIds='
+        url += '&category_ids='
         url += search.cat_ids
     if search.min_price is not None:
-        url += '&minPrice='
+        url += '&min_sale_price='
         url += search.min_price
     if search.max_price is not None:
-        url += '&maxPrice='
+        url += '&max_sale_price='
         url += search.max_price
     if search.dist is not None:
         url += '&dist='
@@ -75,18 +76,20 @@ def get_items(url, chat_id):
     try:
         resp = requests.get(url=url)
         data = resp.json()
-        for x in data['items']:
-            # print('\t'.join((datetime.datetime.today().strftime('%Y-%m-%d %H:%M'),
-            #                  str(x['itemId']), x['price'], x['title'])))
-            i = db.search_item(x['itemId'], chat_id)
+        # print(data)
+        for x in data['search_objects']:
+            print(x)
+            print('\t'.join((datetime.datetime.today().strftime('%Y-%m-%d %H:%M'),
+                             str(x['id']), str(x['price']), x['title'], x['user']['id'])))
+            i = db.search_item(x['id'], chat_id)
             if i is None:
-                db.add_item(x['itemId'], chat_id, x['title'], x['price'], x['url'], x['publishDate'])
-                notel(chat_id, x['price'], x['title'], x['url'])
+                db.add_item(x['id'], chat_id, x['title'], x['price'], x['web_slug'], x['user']['id'])
+                notel(chat_id, str(x['price']), x['title'], x['web_slug'])
                 print('\t'.join((datetime.datetime.today().strftime('%Y-%m-%d %H:%M'),
-                             'NEW ', str(x['itemId']), x['price'], x['title'])))
+                                 'NEW ', str(x['id']), str(x['price']), x['title'])))
             else:
                 # Si está comparar precio...
-                money = x['price']
+                money = str(x['price'])
                 value_json = Decimal(sub(r'[^\d.]', '', money))
                 value_db = Decimal(sub(r'[^\d.]', '', i.price))
                 if value_json < value_db:
@@ -94,11 +97,11 @@ def get_items(url, chat_id):
                     if i.observaciones is not None:
                         new_obs += ' < '
                         new_obs += i.observaciones
-                    db.update_item(x['itemId'], money, new_obs)
+                    db.update_item(x['id'], money, new_obs)
                     obs = ' < ' + new_obs
-                    notel(chat_id, x['price'], x['title'], x['url'], obs)
+                    notel(chat_id, x['price'], x['title'], x['web_slug'], obs)
                     print('\t'.join((datetime.datetime.today().strftime('%Y-%m-%d %H:%M'),
-                             'BAJA', str(x['itemId']), x['price'], x['title'])))
+                                     'BAJA', str(x['id']), x['price'], x['title'])))
     except Exception as e:
         print(e)
 
@@ -140,8 +143,8 @@ def get_searchs(message):
         text += chat_search.kws
         text += '|'
         if chat_search.min_price is not None:
-            text += chat_search.min_price 
-        text += '-' 
+            text += chat_search.min_price
+        text += '-'
         if chat_search.max_price is not None:
             text += chat_search.max_price
         if chat_search.cat_ids is not None:
@@ -188,7 +191,7 @@ def add_search(message):
 
 logger = telebot.logger
 formatter = logging.Formatter('[%(asctime)s] %(thread)d {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s',
-                                  '%m-%d %H:%M:%S')
+                              '%m-%d %H:%M:%S')
 ch = logging.StreamHandler(sys.stdout)
 logger.addHandler(ch)
 logger.setLevel(logging.ERROR)  # or use logging.INFO
@@ -214,15 +217,15 @@ def wallapop():
         continue
 
 
-#def recovery(times):
-    #try:
+# def recovery(times):
+# try:
 #        bot.polling(none_stop=True, timeout=600)
-    #except Exception as e:
-    #    print("¡¡¡ERROR!!! %s intento" % (times, ))
-    #    print(times)
-    #    print(datetime.datetime.today().strftime('%Y-%m-%d %H:%M'))
-    #    print(e)
-    #    recovery(times+1)
+# except Exception as e:
+#    print("¡¡¡ERROR!!! %s intento" % (times, ))
+#    print(times)
+#    print(datetime.datetime.today().strftime('%Y-%m-%d %H:%M'))
+#    print(e)
+#    recovery(times+1)
 
 
 def main():
@@ -231,7 +234,7 @@ def main():
 
     threading.Thread(target=wallapop).start()
 
-    #recovery(1)
+    # recovery(1)
     bot.polling(none_stop=True, timeout=3000)
 
 

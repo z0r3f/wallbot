@@ -54,6 +54,7 @@ class DBHelper:
                   "title text, " \
                   "price text, " \
                   "url text, " \
+                  "user text, " \
                   "publishDate integer, " \
                   "observaciones text, " \
                   "item text, " \
@@ -129,10 +130,10 @@ class DBHelper:
         except sqlite3.IntegrityError as e:
             print(e)
 
-    def add_item(self, item_id, chat_id, title, price, url, publish_date, observaciones=None, user=None):
-        stmt = "insert into item (itemId, chatId, title, price, url, publishDate, observaciones, user) " \
+    def add_item(self, item_id, chat_id, title, price, url, user, publish_date=None, observaciones=None):
+        stmt = "insert into item (itemId, chatId, title, price, url, user, publishDate, observaciones) " \
                "values (?, ?, ?, ?, ?, ?, ?, ?)"
-        args = (item_id, chat_id, title, price, url, publish_date, observaciones, user)
+        args = (item_id, chat_id, title, price, url, user, publish_date, observaciones)
         try:
             self.conn.execute(stmt, args)
             self.conn.commit()
