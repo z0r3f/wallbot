@@ -1,0 +1,6 @@
+- [x] Definir dependencias
+- [ ] Probar dependencias
+- [x] Externalizar TOKEN
+- [ ] Preparar directorio /data
+- [ ] Logging
+- [ ] Docker

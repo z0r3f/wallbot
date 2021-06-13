@@ -10,10 +10,10 @@ from decimal import Decimal
 import logging
 import sys
 import threading
+import os
 
-TOKEN = "SUSTITUIR-POR-EL-TOKEN-DEL-BOT-DE-TELEGRAM"
+TOKEN = os.getenv("BOT_TOKEN", "Bot Token does not exist")
 URL = "https://api.telegram.org/bot{}/".format(TOKEN)
-# URL_ITEMS = "https://es.wallapop.com/rest/items"
 URL_ITEMS = "https://api.wallapop.com/api/v3/general/search"
 
 db = DBHelper()
