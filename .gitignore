@@ -1,4 +1,5 @@
-.idea/workspace.xml
-.idea/shelf/
-db.sqlite
+__pycache__
+.idea/
 venv/
+db.sqlite
+*.log

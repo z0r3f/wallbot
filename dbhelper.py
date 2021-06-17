@@ -43,7 +43,7 @@ class Item:
 
 
 class DBHelper:
-    def __init__(self, dbname="db.sqlite"):
+    def __init__(self, dbname="/data/db.sqlite"):
         self.dbname = dbname
         self.conn = sqlite3.connect(dbname, check_same_thread=False)
 
