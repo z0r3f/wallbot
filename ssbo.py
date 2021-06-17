@@ -8,14 +8,22 @@ from dbhelper import DBHelper, ChatSearch, Item
 from re import sub
 from decimal import Decimal
 import logging
+from logging.handlers import RotatingFileHandler
 import sys
 import threading
+import os
+import locale
 
-TOKEN = "SUSTITUIR-POR-EL-TOKEN-DEL-BOT-DE-TELEGRAM"
+TOKEN = os.getenv("BOT_TOKEN", "Bot Token does not exist")
 URL = "https://api.telegram.org/bot{}/".format(TOKEN)
-URL_ITEMS = "https://es.wallapop.com/rest/items"
+URL_ITEMS = "https://api.wallapop.com/api/v3/general/search"
+PROFILE = os.getenv("PROFILE")
 
-db = DBHelper()
+if PROFILE is None:
+    db = DBHelper()
+else:
+    db = DBHelper("db.sqlite")
+
 
 ICON_VIDEO_GAMES = u'\U0001F3AE'  # 🎮
 ICON_WARNING____ = u'\U000026A0'  # ⚠️
@@ -35,29 +43,29 @@ def notel(chat_id, price, title, url_item, obs=None):
     text += '\n'
     if obs is not None:
         text += ICON_COLLISION__ + ' '
-    text += price
+    text += locale.currency(price, grouping=True)
     if obs is not None:
         text += obs
         text += ' ' + ICON_COLLISION__
     text += '\n'
     text += 'https://es.wallapop.com/item/'
     text += url_item
-    urlz0rb0t = URL+"sendMessage?chat_id=%s&parse_mode=markdown&text=%s" % (chat_id, text)
+    urlz0rb0t = URL + "sendMessage?chat_id=%s&parse_mode=markdown&text=%s" % (chat_id, text)
     requests.get(url=urlz0rb0t)
 
 
 def get_url_list(search):
     url = URL_ITEMS
-    url += '?kws='
+    url += '?keywords='
     url += "+".join(search.kws.split(" "))
     if search.cat_ids is not None:
-        url += '&catIds='
+        url += '&category_ids='
         url += search.cat_ids
     if search.min_price is not None:
-        url += '&minPrice='
+        url += '&min_sale_price='
         url += search.min_price
     if search.max_price is not None:
-        url += '&maxPrice='
+        url += '&max_sale_price='
         url += search.max_price
     if search.dist is not None:
         url += '&dist='
@@ -75,18 +83,20 @@ def get_items(url, chat_id):
     try:
         resp = requests.get(url=url)
         data = resp.json()
-        for x in data['items']:
+        # print(data)
+        for x in data['search_objects']:
             # print('\t'.join((datetime.datetime.today().strftime('%Y-%m-%d %H:%M'),
-            #                  str(x['itemId']), x['price'], x['title'])))
-            i = db.search_item(x['itemId'], chat_id)
+            #                  str(x['id']), str(x['price']), x['title'], x['user']['id'])))
+            # logging.info('\t'.join((str(x['id']), str(x['price']), x['title'], x['user']['id'])))
+            logging.info('Encontrado: id=%s, price=%s, title=%s, user=%s',str(x['id']), locale.currency(x['price'], grouping=True), x['title'], x['user']['id'])
+            i = db.search_item(x['id'], chat_id)
             if i is None:
-                db.add_item(x['itemId'], chat_id, x['title'], x['price'], x['url'], x['publishDate'])
-                notel(chat_id, x['price'], x['title'], x['url'])
-                print('\t'.join((datetime.datetime.today().strftime('%Y-%m-%d %H:%M'),
-                             'NEW ', str(x['itemId']), x['price'], x['title'])))
+                db.add_item(x['id'], chat_id, x['title'], x['price'], x['web_slug'], x['user']['id'])
+                notel(chat_id, x['price'], x['title'], x['web_slug'])
+                logging.info('New: id=%s, price=%s, title=%s', str(x['id']), locale.currency(x['price'], grouping=True), x['title'])
             else:
                 # Si está comparar precio...
-                money = x['price']
+                money = str(x['price'])
                 value_json = Decimal(sub(r'[^\d.]', '', money))
                 value_db = Decimal(sub(r'[^\d.]', '', i.price))
                 if value_json < value_db:
@@ -94,13 +104,12 @@ def get_items(url, chat_id):
                     if i.observaciones is not None:
                         new_obs += ' < '
                         new_obs += i.observaciones
-                    db.update_item(x['itemId'], money, new_obs)
+                    db.update_item(x['id'], money, new_obs)
                     obs = ' < ' + new_obs
-                    notel(chat_id, x['price'], x['title'], x['url'], obs)
-                    print('\t'.join((datetime.datetime.today().strftime('%Y-%m-%d %H:%M'),
-                             'BAJA', str(x['itemId']), x['price'], x['title'])))
+                    notel(chat_id, x['price'], x['title'], x['web_slug'], obs)
+                    logging.info('Baja: id=%s, price=%s, title=%s', str(x['id']), locale.currency(x['price'], grouping=True), x['title'])
     except Exception as e:
-        print(e)
+        logging.error(e)
 
 
 # INI Actualización de db a partir de la librería de Telegram
@@ -140,8 +149,8 @@ def get_searchs(message):
         text += chat_search.kws
         text += '|'
         if chat_search.min_price is not None:
-            text += chat_search.min_price 
-        text += '-' 
+            text += chat_search.min_price
+        text += '-'
         if chat_search.max_price is not None:
             text += chat_search.max_price
         if chat_search.cat_ids is not None:
@@ -177,7 +186,7 @@ def add_search(message):
     cs.username = message.from_user.username
     cs.name = message.from_user.first_name
     cs.active = 1
-    print(cs)
+    logging.info('%s', cs)
     db.add_search(cs)
 
 
@@ -186,13 +195,25 @@ def add_search(message):
 #     print('echo: "' + message.text + '"')
 #     bot.reply_to(message, message.text)
 
-logger = telebot.logger
-formatter = logging.Formatter('[%(asctime)s] %(thread)d {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s',
-                                  '%m-%d %H:%M:%S')
-ch = logging.StreamHandler(sys.stdout)
-logger.addHandler(ch)
-logger.setLevel(logging.ERROR)  # or use logging.INFO
-ch.setFormatter(formatter)
+pathlog = 'wallbot.log'
+if PROFILE is None:
+    pathlog = '/logs/' + pathlog
+
+logging.basicConfig(
+    handlers=[RotatingFileHandler(pathlog, maxBytes=1000000, backupCount=10)],
+#    filename='wallbot.log',
+    level=logging.INFO,
+    format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %H:%M:%S')
+
+locale.setlocale(locale.LC_ALL, 'es_ES.UTF-8')
+
+#logger = telebot.logger
+#formatter = logging.Formatter('[%(asctime)s] %(thread)d {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s',
+#                              '%m-%d %H:%M:%S')
+#ch = logging.StreamHandler(sys.stdout)
+#logger.addHandler(ch)
+#logger.setLevel(logging.INFO)  # or use logging.INFO
+#ch.setFormatter(formatter)
 
 
 # FIN
@@ -214,26 +235,26 @@ def wallapop():
         continue
 
 
-#def recovery(times):
-    #try:
+# def recovery(times):
+# try:
 #        bot.polling(none_stop=True, timeout=600)
-    #except Exception as e:
-    #    print("¡¡¡ERROR!!! %s intento" % (times, ))
-    #    print(times)
-    #    print(datetime.datetime.today().strftime('%Y-%m-%d %H:%M'))
-    #    print(e)
-    #    recovery(times+1)
+# except Exception as e:
+#    print("¡¡¡ERROR!!! %s intento" % (times, ))
+#    print(times)
+#    print(datetime.datetime.today().strftime('%Y-%m-%d %H:%M'))
+#    print(e)
+#    recovery(times+1)
 
 
 def main():
     print("JanJanJan starting...")
+    logging.info("JanJanJan starting...")
     db.setup()
 
     threading.Thread(target=wallapop).start()
 
-    #recovery(1)
+    # recovery(1)
     bot.polling(none_stop=True, timeout=3000)
-
 
 if __name__ == '__main__':
     main()
