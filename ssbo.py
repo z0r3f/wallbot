@@ -100,7 +100,7 @@ def get_items(url, chat_id):
                 value_json = Decimal(sub(r'[^\d.]', '', money))
                 value_db = Decimal(sub(r'[^\d.]', '', i.price))
                 if value_json < value_db:
-                    new_obs = i.price
+                    new_obs = locale.currency(i.price, grouping=True)
                     if i.observaciones is not None:
                         new_obs += ' < '
                         new_obs += i.observaciones
