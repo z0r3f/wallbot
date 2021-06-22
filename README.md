@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/z0r3f/wallbot.svg)](https://travis-ci.com/z0r3f/wallbot)
+
 # wallbot
 wallapop search bot
 
