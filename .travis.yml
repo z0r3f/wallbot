@@ -1,21 +1,23 @@
 language: python
+services:
+  - docker
 python:
   - "3.8"
 install:
   - pip install -r requirements.txt
-script: true # Skip script
-branches:
-  only:
-  - master
-dist: trusty
-jobs:
-  include:
-    - stage: build docker image
-      script:
-      - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-      - docker build --tag z0r3f/wallbot-docker:latest .
-      - docker images
-      - version=`cat VERSION`
-      - docker tag z0r3f/wallbot-docker:latest z0r3f/wallbot-docker:$version
-      - docker push z0r3f/wallbot-docker:latest 
-      - docker push z0r3f/wallbot-docker:$version
+script: true
+before_deploy:
+  - docker build --tag z0r3f/wallbot-docker:latest .
+deploy:
+  script: 
+    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+    - docker build --tag z0r3f/wallbot-docker:latest .
+    - docker images
+    - version=`cat VERSION`
+    - docker tag z0r3f/wallbot-docker:latest z0r3f/wallbot-docker:$version
+    - docker push z0r3f/wallbot-docker:latest 
+    - docker push z0r3f/wallbot-docker:$version
+  on:
+    branch: master
+
+
