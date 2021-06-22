@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/z0r3f/wallbot.svg)](https://travis-ci.com/z0r3f/wallbot)
+![Docker Image Size (latest by date)](https://img.shields.io/docker/image-size/z0r3f/wallbot-docker) [![Docker pulls](https://img.shields.io/docker/pulls/z0r3f/wallbot-docker?style=flat-square)](https://hub.docker.com/r/z0r3f/wallbot-docker)  [![commit_freq](https://img.shields.io/github/commit-activity/m/z0r3f/wallbot?style=flat-square)](https://github.com/z0r3f/wallbot/commits) [![Build Status](https://travis-ci.com/z0r3f/wallbot.svg)](https://travis-ci.com/z0r3f/wallbot)  [![last_commit](https://img.shields.io/github/last-commit/z0r3f/wallbot?style=flat-square)](https://github.com/z0r3f/wallbot/commits) 
 
 # wallbot
 wallapop search bot
