@@ -12,7 +12,7 @@ deploy:
       echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin &&
       docker build --tag z0r3f/wallbot-docker:latest . &&
       docker images &&
-      version=`cat VERSION` &&
+      export version=`cat VERSION` &&
       docker tag z0r3f/wallbot-docker:latest z0r3f/wallbot-docker:$version &&
       docker push z0r3f/wallbot-docker:latest  &&
       docker push z0r3f/wallbot-docker:$version
