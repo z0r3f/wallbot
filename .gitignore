@@ -4,3 +4,5 @@ venv/
 db.sqlite
 *.log
 *.tar
+log
+wallbot.log.*
