@@ -112,7 +112,15 @@ def get_items(url, chat_id):
         logging.error(e)
 
 
+def handle_exception(self, exception):
+    logging.exception(exception)
+    logging.error("Ha ocurrido un error con la llamada a Telegram. Se reintenta la conexión")
+    print("Ha ocurrido un error con la llamada a Telegram. Se reintenta la conexión")
+    bot.polling(none_stop=True, timeout=3000)
+
+
 # INI Actualización de db a partir de la librería de Telegram
+# bot = telebot.TeleBot(TOKEN, exception_handler=handle_exception)
 bot = telebot.TeleBot(TOKEN)
 
 
@@ -235,15 +243,18 @@ def wallapop():
         continue
 
 
-# def recovery(times):
-# try:
-#        bot.polling(none_stop=True, timeout=600)
-# except Exception as e:
-#    print("¡¡¡ERROR!!! %s intento" % (times, ))
-#    print(times)
-#    print(datetime.datetime.today().strftime('%Y-%m-%d %H:%M'))
-#    print(e)
-#    recovery(times+1)
+def recovery(times):
+    try:
+        time.sleep(times)
+        logging.info("Conexión a Telegram.")
+        print("Conexión a Telegram")
+        bot.polling(none_stop=True, timeout=3000)
+    except Exception as e:
+        logging.error("Ha ocurrido un error con la llamada a Telegram. Se reintenta la conexión", e)
+        print("Ha ocurrido un error con la llamada a Telegram. Se reintenta la conexión")
+        if times > 16:
+            times = 16
+        recovery(times*2)
 
 
 def main():
@@ -253,8 +264,9 @@ def main():
 
     threading.Thread(target=wallapop).start()
 
-    # recovery(1)
-    bot.polling(none_stop=True, timeout=3000)
+    recovery(1)
+    # bot.polling(none_stop=True, timeout=3000)
+
 
 if __name__ == '__main__':
     main()
