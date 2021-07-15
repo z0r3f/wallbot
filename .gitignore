@@ -6,3 +6,4 @@ db.sqlite
 *.tar
 log
 wallbot.log.*
+.DS_Store

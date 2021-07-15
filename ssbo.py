@@ -58,6 +58,7 @@ def get_url_list(search):
     url = URL_ITEMS
     url += '?keywords='
     url += "+".join(search.kws.split(" "))
+    url += '&time_filter=today'
     if search.cat_ids is not None:
         url += '&category_ids='
         url += search.cat_ids
@@ -70,11 +71,8 @@ def get_url_list(search):
     if search.dist is not None:
         url += '&dist='
         url += search.dist
-    if search.publish_date is not None:
-        url += '&publishDate='
-        url += str(search.publish_date)
     if search.orde is not None:
-        url += '&order='
+        url += '&order_by='
         url += search.orde
     return url
 
@@ -260,12 +258,16 @@ def recovery(times):
 def main():
     print("JanJanJan starting...")
     logging.info("JanJanJan starting...")
-    db.setup()
-
+    db.setup(readVersion())
     threading.Thread(target=wallapop).start()
-
     recovery(1)
-    # bot.polling(none_stop=True, timeout=3000)
+
+
+def readVersion():
+    file = open("VERSION", "r")
+    version = file.readline()
+    logging.info("Version %s", version)
+    return version
 
 
 if __name__ == '__main__':
