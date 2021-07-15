@@ -36,18 +36,13 @@ class Item:
         self.observaciones = observaciones
         self.item = item
 
-# class Chat:
-#     def __init__(self, chat_id, last_update_id):
-#         self.chat_id = chat_id
-#         self.last_update_id = last_update_id
-
 
 class DBHelper:
     def __init__(self, dbname="/data/db.sqlite"):
         self.dbname = dbname
         self.conn = sqlite3.connect(dbname, check_same_thread=False)
 
-    def setup(self):
+    def setup(self, version=""):
         tblstmtitem = "create table if not exists item " \
                   "(itemId integer, " \
                   "chatId text, " \
@@ -69,17 +64,21 @@ class DBHelper:
                       "max_price text, " \
                       "dist text default \'400\', " \
                       "publish_date integer default 24, " \
-                      "ord text default \'creationDate-des\', " \
+                      "ord text default \'newest\', " \
                       "username text, " \
                       "name text, " \
                       "active int default 1)"
         self.conn.execute(tblstmtchat)
 
-        # tblstmtupda = "create table if not exists chat_update " \
-        #               "(chat_id text, " \
-        #               "last_update_id text, " \
-        #               "primary key (chat_id))"
-        # self.conn.execute(tblstmtupda)
+        if version == '1.0.6':
+            stmt = "update chat_search " \
+                   "set ord = \'newest\' " \
+                   "where ord = \'creationDate-des\'"
+            try:
+                self.conn.execute(stmt)
+                self.conn.commit()
+            except Exception as e:
+                print(e)
 
         self.conn.commit()
 
@@ -206,11 +205,3 @@ class DBHelper:
             self.conn.commit()
         except Exception as e:
             print(e)
-
-    # def get_chats(self):
-    #     stmt = "select chat_id, last_update_id from chat_update"
-    #     lista = []
-    #     for row in self.conn.execute(stmt):
-    #         c = Chat(row[0], row[1])
-    #         lista.append(c)
-    #     return lista
