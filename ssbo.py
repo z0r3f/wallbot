@@ -17,6 +17,7 @@ import locale
 TOKEN = os.getenv("BOT_TOKEN", "Bot Token does not exist")
 URL = "https://api.telegram.org/bot{}/".format(TOKEN)
 URL_ITEMS = "https://api.wallapop.com/api/v3/general/search"
+URL_CATEGORIES = "https://api.wallapop.com/api/v3/categories"
 PROFILE = os.getenv("PROFILE")
 
 if PROFILE is None:
@@ -110,6 +111,16 @@ def get_items(url, chat_id):
         logging.error(e)
 
 
+def get_categories(url):
+    try:
+        resp = requests.get(url=url, headers={"Accept-Language": "es-ES"})
+        data = resp.json()
+        return data
+    
+    except Exception as e:
+        logging.error(e)
+
+
 def handle_exception(self, exception):
     logging.exception(exception)
     logging.error("Ha ocurrido un error con la llamada a Telegram. Se reintenta la conexión")
@@ -127,15 +138,29 @@ def send_welcome(message):
     bot.send_message(message.chat.id, ("*Utilización*\n"
                                        "/help\n"
                                        "*Añadir búsquedas:*\n"
-                                       "\t/add `búsqueda,min-max`\n"
-                                       "\t/add zapatos rojos,5-25\n"
+                                       "\t/add `búsqueda,min-max,categoría`\n"
+                                       "\t/add zapatos rojos,5-25,15000\n"
                                        "*Borrar búsqueda:*\n"
                                        "\t/del `búsqueda`\n"
                                        "\t/del zapatos rojos\n"
                                        "*Lista de búsquedas:*\n"
-                                       "\t/lis",)
+                                       "\t/list\n"
+                                       "*Lista de categorías:*\n"
+                                       "\t/cat\n"
+                                       ,)
                      , parse_mode='Markdown')
 
+@bot.message_handler(commands=['cat', 'categorias', 'c'])
+def categories(message):
+    data = get_categories(URL_CATEGORIES)
+
+    texto = "*Categorias:*\n\n"
+
+    for x in data['categories']:
+        texto += "*" + str(x['name']) + "*\n"
+        texto += "\t`" + str(x['id']) + "`\n"
+
+    bot.send_message(message.chat.id, texto, parse_mode='Markdown')
 
 @bot.message_handler(commands=['del', 'borrar', 'd'])
 def delete_search(message):
@@ -146,7 +171,7 @@ def delete_search(message):
     db.del_chat_search(message.chat.id, ' '.join(parametros[1:]))
 
 
-@bot.message_handler(commands=['lis', 'listar', 'l'])
+@bot.message_handler(commands=['list', 'listar', 'l'])
 def get_searchs(message):
     text = ''
     for chat_search in db.get_chat_searchs(message.chat.id):
