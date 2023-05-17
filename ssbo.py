@@ -13,6 +13,8 @@ import sys
 import threading
 import os
 import locale
+from telebot import TeleBot
+from telebot import types
 
 TOKEN = os.getenv("BOT_TOKEN", "Bot Token does not exist")
 URL = "https://api.telegram.org/bot{}/".format(TOKEN)
@@ -131,50 +133,108 @@ def handle_exception(self, exception):
 # INI Actualización de db a partir de la librería de Telegram
 # bot = telebot.TeleBot(TOKEN, exception_handler=handle_exception)
 bot = telebot.TeleBot(TOKEN)
+cs = ChatSearch()
+
+@bot.message_handler(commands=['start', 'help', 'menu', 's', 'h', 'm'])
+def send_test(message):
+    inicio(message)
 
 
-@bot.message_handler(commands=['start', 'help', 's', 'h'])
-def send_welcome(message):
-    bot.send_message(message.chat.id, ("*Utilización*\n"
-                                       "/help\n"
-                                       "*Añadir búsquedas:*\n"
-                                       "\t/add `búsqueda,min-max,categoría`\n"
-                                       "\t/add zapatos rojos,5-25,15000\n"
-                                       "*Borrar búsqueda:*\n"
-                                       "\t/del `búsqueda`\n"
-                                       "\t/del zapatos rojos\n"
-                                       "*Lista de búsquedas:*\n"
-                                       "\t/list\n"
-                                       "*Lista de categorías:*\n"
-                                       "\t/cat\n"
-                                       ,)
-                     , parse_mode='Markdown')
+@bot.callback_query_handler(lambda call: call.data == "añadir")
+def process_callback_añadir(call):
+    añadir(call)
 
-@bot.message_handler(commands=['cat', 'categorias', 'c'])
-def categories(message):
+
+@bot.callback_query_handler(lambda call: call.data == "listar")
+def process_callback_listar(call):
+    listar(call)
+
+
+@bot.callback_query_handler(lambda call: call.data == "borrar")
+def process_callback_borrar(call):
+    borrar(call)
+
+
+@bot.callback_query_handler(lambda call: call.data == "categorias")
+def process_callback_categorias(call):
+    categorias(call)
+
+
+def inicio(call):
+    boton_añadir = types.InlineKeyboardButton('Añadir', callback_data='añadir')
+    boton_listar = types.InlineKeyboardButton('Listar', callback_data='listar')
+    boton_borrar = types.InlineKeyboardButton('Borrar', callback_data='borrar')
+    boton_categorias = types.InlineKeyboardButton('Categorias', callback_data='categorias')
+
+    keyboard = types.InlineKeyboardMarkup()
+    keyboard.row(boton_añadir, boton_listar)
+    keyboard.row(boton_borrar, boton_categorias)
+
+    bot.send_message(call.chat.id, text='Selecciona una acción a realizar', reply_markup=keyboard)
+
+
+def añadir(call):
+    busqueda = bot.send_message(call.message.chat.id,  'Introduce la busqueda:')
+    bot.register_next_step_handler(busqueda, guardarBusqueda)
+
+
+def guardarBusqueda(message):
+    cs.chat_id = message.chat.id
+    cs.kws = message.text
+
+    rangoPrecio = bot.send_message(message.chat.id,  'Introduce el rango de precio (min-max):')
+    bot.register_next_step_handler(rangoPrecio, guardarRangoPrecio)
+
+
+def guardarRangoPrecio(message):
+    rango = message.text.split('-')
+    cs.min_price = rango[0].strip()
+    if len(rango) > 1:
+        cs.max_price = rango[1].strip()
+
+    cs.username = message.from_user.username
+    cs.name = message.from_user.first_name
+    cs.active = 1
+
     data = get_categories(URL_CATEGORIES)
-
-    texto = "*Categorias:*\n\n"
-
+    keyboard = types.InlineKeyboardMarkup()
     for x in data['categories']:
-        texto += "*" + str(x['name']) + "*\n"
-        texto += "\t`" + str(x['id']) + "`\n"
+        boton = types.InlineKeyboardButton(str(x['name']), callback_data='categoria,' + str(x['id']))
+        keyboard.add(boton)
 
-    bot.send_message(message.chat.id, texto, parse_mode='Markdown')
-
-@bot.message_handler(commands=['del', 'borrar', 'd'])
-def delete_search(message):
-    parametros = str(message.text).split(' ', 1)
-    if len(parametros) < 2:
-        # Solo puso el comando
-        return
-    db.del_chat_search(message.chat.id, ' '.join(parametros[1:]))
+    bot.send_message(message.chat.id, text='Selecciona una categoria', reply_markup=keyboard)
 
 
-@bot.message_handler(commands=['list', 'listar', 'l'])
-def get_searchs(message):
+@bot.callback_query_handler(func=lambda call: True)
+def handle_query(call):
+    catAux = call.data.split(',')
+    if catAux[0] == "categoria":
+        categoriaId = catAux[1]
+        call.message.text = categoriaId
+        guardarCategoria(call)
+
+
+def guardarCategoria(call):
+    cs.cat_ids = call.message.text
+    logging.info('%s', cs)
+    db.add_search(cs)
+    bot.send_message(call.message.chat.id, "Busqueda guardada")
+
+
+def borrar(call):
+    busquedaBorrar = bot.send_message(call.message.chat.id,  'Introduce la busqueda a borrar:')
+    bot.register_next_step_handler(busquedaBorrar, borrarBusqueda)
+
+
+def borrarBusqueda(call):
+    db.del_chat_search(call.chat.id, call.text)
+    bot.send_message(call.chat.id, "Busqueda borrada")
+
+
+def listar(call):
     text = ''
-    for chat_search in db.get_chat_searchs(message.chat.id):
+
+    for chat_search in db.get_chat_searchs(call.message.chat.id):
         if len(text) > 0:
             text += '\n'
         text += chat_search.kws
@@ -188,7 +248,19 @@ def get_searchs(message):
             text += '|'
             text += chat_search.cat_ids
     if len(text) > 0:
-        bot.send_message(message.chat.id, (text,))
+        bot.send_message(call.message.chat.id, (text,))
+
+
+def categorias(call):
+    data = get_categories(URL_CATEGORIES)
+
+    texto = "*Categorias:*\n\n"
+
+    for x in data['categories']:
+        texto += "*" + str(x['name']) + "*\n"
+        texto += "\t`" + str(x['id']) + "`\n"
+
+    bot.send_message(call.message.chat.id, texto, parse_mode='Markdown')
 
 
 # /add búsqueda,min-max,categorías separadas por comas
@@ -221,11 +293,6 @@ def add_search(message):
     db.add_search(cs)
 
 
-# @bot.message_handler(func=lambda message: True)
-# def echo_all(message):
-#     print('echo: "' + message.text + '"')
-#     bot.reply_to(message, message.text)
-
 pathlog = 'wallbot.log'
 if PROFILE is None:
     pathlog = '/logs/' + pathlog
@@ -238,14 +305,6 @@ logging.basicConfig(
 
 locale.setlocale(locale.LC_ALL, 'es_ES.UTF-8')
 
-#logger = telebot.logger
-#formatter = logging.Formatter('[%(asctime)s] %(thread)d {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s',
-#                              '%m-%d %H:%M:%S')
-#ch = logging.StreamHandler(sys.stdout)
-#logger.addHandler(ch)
-#logger.setLevel(logging.INFO)  # or use logging.INFO
-#ch.setFormatter(formatter)
-
 
 # FIN
 
@@ -257,10 +316,6 @@ def wallapop():
 
             # Lanza las búsquedas y notificaciones ...
             get_items(u, search.chat_id)
-
-        # Borrar items antiguos (> 24hrs?)
-        # No parece buena idea. Vuelven a entrar cada 5min algunos
-        # db.deleteItems(24)
 
         time.sleep(300)
         continue
