@@ -228,6 +228,11 @@ def borrar(call):
     bot.register_next_step_handler(busquedaBorrar, borrarBusqueda)
 
 
+def borrarBusqueda(call):
+    db.del_chat_search(call.chat.id, call.text)
+    bot.send_message(call.chat.id, "Busqueda borrada")
+
+
 def listar(call):
     text = ''
 
@@ -246,10 +251,6 @@ def listar(call):
             text += chat_search.cat_ids
     if len(text) > 0:
         bot.send_message(call.message.chat.id, (text,))
-
-
-def borrarBusqueda(call):
-    db.del_chat_search(call.chat.id, call.text)
 
 
 def categorias(call):
