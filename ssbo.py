@@ -135,23 +135,45 @@ def handle_exception(self, exception):
 bot = telebot.TeleBot(TOKEN)
 cs = ChatSearch()
 
-@bot.message_handler(commands=['botones', 'botones', 'b'])
+@bot.message_handler(commands=['start', 'help', 'menu', 's', 'h', 'm'])
 def send_test(message):
+    inicio(message)
+
+
+@bot.callback_query_handler(lambda call: call.data == "añadir")
+def process_callback_añadir(call):
+    añadir(call)
+
+
+@bot.callback_query_handler(lambda call: call.data == "listar")
+def process_callback_listar(call):
+    listar(call)
+    #inicio(call)
+
+
+@bot.callback_query_handler(lambda call: call.data == "borrar")
+def process_callback_borrar(call):
+    borrar(call)
+
+
+@bot.callback_query_handler(lambda call: call.data == "categorias")
+def process_callback_categorias(call):
+    categorias(call)
+
+
+def inicio(call):
     boton_añadir = types.InlineKeyboardButton('Añadir', callback_data='añadir')
     boton_listar = types.InlineKeyboardButton('Listar', callback_data='listar')
     boton_borrar = types.InlineKeyboardButton('Borrar', callback_data='borrar')
+    boton_categorias = types.InlineKeyboardButton('Categorias', callback_data='categorias')
 
     keyboard = types.InlineKeyboardMarkup()
     keyboard.add(boton_añadir)
     keyboard.add(boton_listar)
     keyboard.add(boton_borrar)
+    keyboard.add(boton_categorias)
 
-    bot.send_message(message.chat.id, text='Selecciona una acción a realizar', reply_markup=keyboard)
-
-
-@bot.callback_query_handler(lambda call: call.data == "añadir")
-def process_callback_1(call):
-  añadir(call)
+    bot.send_message(call.chat.id, text='Selecciona una acción a realizar', reply_markup=keyboard)
 
 
 def añadir(call):
@@ -191,50 +213,15 @@ def guardarCategoria(message):
     bot.send_message(message.chat.id, "Busqueda guardada")
 
 
-@bot.message_handler(commands=['start', 'help', 's', 'h'])
-def send_welcome(message):
-    bot.send_message(message.chat.id, ("*Utilización*\n"
-                                       "/help\n"
-                                       "*Añadir búsquedas:*\n"
-                                       "\t/add `búsqueda,min-max,categoría`\n"
-                                       "\t/add zapatos rojos,5-25,15000\n"
-                                       "*Borrar búsqueda:*\n"
-                                       "\t/del `búsqueda`\n"
-                                       "\t/del zapatos rojos\n"
-                                       "*Lista de búsquedas:*\n"
-                                       "\t/list\n"
-                                       "*Lista de categorías:*\n"
-                                       "\t/cat\n"
-                                       ,)
-                     , parse_mode='Markdown')
+def borrar(call):
+    busquedaBorrar = bot.send_message(call.message.chat.id,  'Introduce la busqueda a borrar:')
+    bot.register_next_step_handler(busquedaBorrar, borrarBusqueda)
 
 
-@bot.message_handler(commands=['cat', 'categorias', 'c'])
-def categories(message):
-    data = get_categories(URL_CATEGORIES)
-
-    texto = "*Categorias:*\n\n"
-
-    for x in data['categories']:
-        texto += "*" + str(x['name']) + "*\n"
-        texto += "\t`" + str(x['id']) + "`\n"
-
-    bot.send_message(message.chat.id, texto, parse_mode='Markdown')
-
-
-@bot.message_handler(commands=['del', 'borrar', 'd'])
-def delete_search(message):
-    parametros = str(message.text).split(' ', 1)
-    if len(parametros) < 2:
-        # Solo puso el comando
-        return
-    db.del_chat_search(message.chat.id, ' '.join(parametros[1:]))
-
-
-@bot.message_handler(commands=['list', 'listar', 'l'])
-def get_searchs(message):
+def listar(call):
     text = ''
-    for chat_search in db.get_chat_searchs(message.chat.id):
+
+    for chat_search in db.get_chat_searchs(call.message.chat.id):
         if len(text) > 0:
             text += '\n'
         text += chat_search.kws
@@ -248,7 +235,23 @@ def get_searchs(message):
             text += '|'
             text += chat_search.cat_ids
     if len(text) > 0:
-        bot.send_message(message.chat.id, (text,))
+        bot.send_message(call.message.chat.id, (text,))
+
+
+def borrarBusqueda(call):
+    db.del_chat_search(call.chat.id, call.text)
+
+
+def categorias(call):
+    data = get_categories(URL_CATEGORIES)
+
+    texto = "*Categorias:*\n\n"
+
+    for x in data['categories']:
+        texto += "*" + str(x['name']) + "*\n"
+        texto += "\t`" + str(x['id']) + "`\n"
+
+    bot.send_message(call.message.chat.id, texto, parse_mode='Markdown')
 
 
 # /add búsqueda,min-max,categorías separadas por comas
