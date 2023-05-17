@@ -148,13 +148,16 @@ def send_test(message):
 
     bot.send_message(message.chat.id, text='Selecciona una acción a realizar', reply_markup=keyboard)
 
+
 @bot.callback_query_handler(lambda call: call.data == "añadir")
 def process_callback_1(call):
   añadir(call)
 
+
 def añadir(call):
     busqueda = bot.send_message(call.message.chat.id,  'Introduce la busqueda:')
     bot.register_next_step_handler(busqueda, guardarBusqueda)
+
 
 def guardarBusqueda(message):
     # Guardar busqueda
@@ -163,6 +166,7 @@ def guardarBusqueda(message):
 
     rangoPrecio = bot.send_message(message.chat.id,  'Introduce el rango de precio:')
     bot.register_next_step_handler(rangoPrecio, guardarRangoPrecio)
+
 
 def guardarRangoPrecio(message):
     # Guardar rango precio
@@ -174,6 +178,7 @@ def guardarRangoPrecio(message):
     categoria = bot.send_message(message.chat.id,  'Introduce la categoria:')
     bot.register_next_step_handler(categoria, guardarCategoria)
 
+
 def guardarCategoria(message):
     # Guardar categoria
     cs.cat_ids = message.text
@@ -184,6 +189,7 @@ def guardarCategoria(message):
     db.add_search(cs)
 
     bot.send_message(message.chat.id, "Busqueda guardada")
+
 
 @bot.message_handler(commands=['start', 'help', 's', 'h'])
 def send_welcome(message):
@@ -202,6 +208,7 @@ def send_welcome(message):
                                        ,)
                      , parse_mode='Markdown')
 
+
 @bot.message_handler(commands=['cat', 'categorias', 'c'])
 def categories(message):
     data = get_categories(URL_CATEGORIES)
@@ -213,6 +220,7 @@ def categories(message):
         texto += "\t`" + str(x['id']) + "`\n"
 
     bot.send_message(message.chat.id, texto, parse_mode='Markdown')
+
 
 @bot.message_handler(commands=['del', 'borrar', 'd'])
 def delete_search(message):
