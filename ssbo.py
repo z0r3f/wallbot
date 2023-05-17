@@ -182,7 +182,7 @@ def guardarBusqueda(message):
     cs.chat_id = message.chat.id
     cs.kws = message.text
 
-    rangoPrecio = bot.send_message(message.chat.id,  'Introduce el rango de precio:')
+    rangoPrecio = bot.send_message(message.chat.id,  'Introduce el rango de precio (min-max):')
     bot.register_next_step_handler(rangoPrecio, guardarRangoPrecio)
 
 
