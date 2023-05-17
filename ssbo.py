@@ -148,7 +148,6 @@ def process_callback_añadir(call):
 @bot.callback_query_handler(lambda call: call.data == "listar")
 def process_callback_listar(call):
     listar(call)
-    #inicio(call)
 
 
 @bot.callback_query_handler(lambda call: call.data == "borrar")
@@ -182,7 +181,6 @@ def añadir(call):
 
 
 def guardarBusqueda(message):
-    # Guardar busqueda
     cs.chat_id = message.chat.id
     cs.kws = message.text
 
@@ -191,26 +189,38 @@ def guardarBusqueda(message):
 
 
 def guardarRangoPrecio(message):
-    # Guardar rango precio
     rango = message.text.split('-')
     cs.min_price = rango[0].strip()
     if len(rango) > 1:
         cs.max_price = rango[1].strip()
 
-    categoria = bot.send_message(message.chat.id,  'Introduce la categoria:')
-    bot.register_next_step_handler(categoria, guardarCategoria)
-
-
-def guardarCategoria(message):
-    # Guardar categoria
-    cs.cat_ids = message.text
     cs.username = message.from_user.username
     cs.name = message.from_user.first_name
     cs.active = 1
+
+    data = get_categories(URL_CATEGORIES)
+    keyboard = types.InlineKeyboardMarkup()
+    for x in data['categories']:
+        boton = types.InlineKeyboardButton(str(x['name']), callback_data='categoria,' + str(x['id']))
+        keyboard.add(boton)
+
+    bot.send_message(message.chat.id, text='Selecciona una categoria', reply_markup=keyboard)
+
+
+@bot.callback_query_handler(func=lambda call: True)
+def handle_query(call):
+    catAux = call.data.split(',')
+    if catAux[0] == "categoria":
+        categoriaId = catAux[1]
+        call.message.text = categoriaId
+        guardarCategoria(call)
+
+
+def guardarCategoria(call):
+    cs.cat_ids = call.message.text
     logging.info('%s', cs)
     db.add_search(cs)
-
-    bot.send_message(message.chat.id, "Busqueda guardada")
+    bot.send_message(call.message.chat.id, "Busqueda guardada")
 
 
 def borrar(call):
