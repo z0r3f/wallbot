@@ -295,11 +295,6 @@ def add_search(message):
     db.add_search(cs)
 
 
-# @bot.message_handler(func=lambda message: True)
-# def echo_all(message):
-#     print('echo: "' + message.text + '"')
-#     bot.reply_to(message, message.text)
-
 pathlog = 'wallbot.log'
 if PROFILE is None:
     pathlog = '/logs/' + pathlog
@@ -312,14 +307,6 @@ logging.basicConfig(
 
 locale.setlocale(locale.LC_ALL, 'es_ES.UTF-8')
 
-#logger = telebot.logger
-#formatter = logging.Formatter('[%(asctime)s] %(thread)d {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s',
-#                              '%m-%d %H:%M:%S')
-#ch = logging.StreamHandler(sys.stdout)
-#logger.addHandler(ch)
-#logger.setLevel(logging.INFO)  # or use logging.INFO
-#ch.setFormatter(formatter)
-
 
 # FIN
 
@@ -331,10 +318,6 @@ def wallapop():
 
             # Lanza las búsquedas y notificaciones ...
             get_items(u, search.chat_id)
-
-        # Borrar items antiguos (> 24hrs?)
-        # No parece buena idea. Vuelven a entrar cada 5min algunos
-        # db.deleteItems(24)
 
         time.sleep(300)
         continue
