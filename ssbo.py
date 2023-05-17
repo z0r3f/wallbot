@@ -13,6 +13,8 @@ import sys
 import threading
 import os
 import locale
+from telebot import TeleBot
+from telebot import types
 
 TOKEN = os.getenv("BOT_TOKEN", "Bot Token does not exist")
 URL = "https://api.telegram.org/bot{}/".format(TOKEN)
@@ -131,7 +133,57 @@ def handle_exception(self, exception):
 # INI Actualización de db a partir de la librería de Telegram
 # bot = telebot.TeleBot(TOKEN, exception_handler=handle_exception)
 bot = telebot.TeleBot(TOKEN)
+cs = ChatSearch()
 
+@bot.message_handler(commands=['botones', 'botones', 'b'])
+def send_test(message):
+    boton_añadir = types.InlineKeyboardButton('Añadir', callback_data='añadir')
+    boton_listar = types.InlineKeyboardButton('Listar', callback_data='listar')
+    boton_borrar = types.InlineKeyboardButton('Borrar', callback_data='borrar')
+
+    keyboard = types.InlineKeyboardMarkup()
+    keyboard.add(boton_añadir)
+    keyboard.add(boton_listar)
+    keyboard.add(boton_borrar)
+
+    bot.send_message(message.chat.id, text='Selecciona una acción a realizar', reply_markup=keyboard)
+
+@bot.callback_query_handler(lambda call: call.data == "añadir")
+def process_callback_1(call):
+  añadir(call)
+
+def añadir(call):
+    busqueda = bot.send_message(call.message.chat.id,  'Introduce la busqueda:')
+    bot.register_next_step_handler(busqueda, guardarBusqueda)
+
+def guardarBusqueda(message):
+    # Guardar busqueda
+    cs.chat_id = message.chat.id
+    cs.kws = message.text
+
+    rangoPrecio = bot.send_message(message.chat.id,  'Introduce el rango de precio:')
+    bot.register_next_step_handler(rangoPrecio, guardarRangoPrecio)
+
+def guardarRangoPrecio(message):
+    # Guardar rango precio
+    rango = message.text.split('-')
+    cs.min_price = rango[0].strip()
+    if len(rango) > 1:
+        cs.max_price = rango[1].strip()
+
+    categoria = bot.send_message(message.chat.id,  'Introduce la categoria:')
+    bot.register_next_step_handler(categoria, guardarCategoria)
+
+def guardarCategoria(message):
+    # Guardar categoria
+    cs.cat_ids = message.text
+    cs.username = message.from_user.username
+    cs.name = message.from_user.first_name
+    cs.active = 1
+    logging.info('%s', cs)
+    db.add_search(cs)
+
+    bot.send_message(message.chat.id, "Busqueda guardada")
 
 @bot.message_handler(commands=['start', 'help', 's', 'h'])
 def send_welcome(message):
