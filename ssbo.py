@@ -167,10 +167,8 @@ def inicio(call):
     boton_categorias = types.InlineKeyboardButton('Categorias', callback_data='categorias')
 
     keyboard = types.InlineKeyboardMarkup()
-    keyboard.add(boton_añadir)
-    keyboard.add(boton_listar)
-    keyboard.add(boton_borrar)
-    keyboard.add(boton_categorias)
+    keyboard.row(boton_añadir, boton_listar)
+    keyboard.row(boton_borrar, boton_categorias)
 
     bot.send_message(call.chat.id, text='Selecciona una acción a realizar', reply_markup=keyboard)
 
