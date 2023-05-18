@@ -2,19 +2,19 @@
 
 import requests
 import time
-import datetime
 import telebot
-from dbhelper import DBHelper, ChatSearch, Item
-from re import sub
-from decimal import Decimal
 import logging
-from logging.handlers import RotatingFileHandler
 import sys
 import threading
 import os
 import locale
+from dbhelper import DBHelper, ChatSearch, Item
+from re import sub
+from decimal import Decimal
+from logging.handlers import RotatingFileHandler
 from telebot import TeleBot
 from telebot import types
+from datetime import datetime
 
 TOKEN = os.getenv("BOT_TOKEN", "Bot Token does not exist")
 URL = "https://api.telegram.org/bot{}/".format(TOKEN)
@@ -84,15 +84,12 @@ def get_items(url, chat_id):
     try:
         resp = requests.get(url=url)
         data = resp.json()
-        # print(data)
         for x in data['search_objects']:
-            # print('\t'.join((datetime.datetime.today().strftime('%Y-%m-%d %H:%M'),
-            #                  str(x['id']), str(x['price']), x['title'], x['user']['id'])))
-            # logging.info('\t'.join((str(x['id']), str(x['price']), x['title'], x['user']['id'])))
             logging.info('Encontrado: id=%s, price=%s, title=%s, user=%s',str(x['id']), locale.currency(x['price'], grouping=True), x['title'], x['user']['id'])
             i = db.search_item(x['id'], chat_id)
             if i is None:
-                db.add_item(x['id'], chat_id, x['title'], x['price'], x['web_slug'], x['user']['id'])
+                creationDate = datetime.fromtimestamp(x['creation_date'] / 1000).strftime('%c')
+                db.add_item(x['id'], chat_id, x['title'], x['price'], x['web_slug'], x['user']['id'], creationDate)
                 notel(chat_id, x['price'], x['title'], x['web_slug'])
                 logging.info('New: id=%s, price=%s, title=%s', str(x['id']), locale.currency(x['price'], grouping=True), x['title'])
             else:
