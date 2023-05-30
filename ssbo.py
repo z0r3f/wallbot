@@ -4,7 +4,6 @@ import requests
 import time
 import telebot
 import logging
-import sys
 import threading
 import os
 import locale
@@ -14,10 +13,11 @@ from decimal import Decimal
 from logging.handlers import RotatingFileHandler
 from telebot import TeleBot
 from telebot import types
+from telebot.types import InputMediaPhoto, InputMediaVideo
 from datetime import datetime
+from urllib.parse import urlparse
 
 TOKEN = os.getenv("BOT_TOKEN", "Bot Token does not exist")
-URL = "https://api.telegram.org/bot{}/".format(TOKEN)
 URL_ITEMS = "https://api.wallapop.com/api/v3/general/search"
 URL_CATEGORIES = "https://api.wallapop.com/api/v3/categories"
 PROFILE = os.getenv("PROFILE")
@@ -36,13 +36,12 @@ ICON_EXCLAMATION = u'\U00002757'  # ❗
 ICON_DIRECT_HIT_ = u'\U0001F3AF'  # 🎯
 
 
-def notel(chat_id, price, title, url_item, obs=None):
-    # https://apps.timwhitlock.info/emoji/tables/unicode
+def notel(chat_id, price, title, url_item, obs=None, images=None):
     if obs is not None:
         text = ICON_EXCLAMATION
     else:
         text = ICON_DIRECT_HIT_
-    text += ' *' + title + '*'
+    text += ' <b>' + title + '</b>'
     text += '\n'
     if obs is not None:
         text += ICON_COLLISION__ + ' '
@@ -53,8 +52,30 @@ def notel(chat_id, price, title, url_item, obs=None):
     text += '\n'
     text += 'https://es.wallapop.com/item/'
     text += url_item
-    urlz0rb0t = URL + "sendMessage?chat_id=%s&parse_mode=markdown&text=%s" % (chat_id, text)
-    requests.get(url=urlz0rb0t)
+
+    #listaFotos = []
+    #listaArchivos = []
+
+    #for image in images:
+    #    archivo = urlparse(image['original'])
+    #    nombreArchivo = os.path.basename(archivo.path)
+    #    rutaArchivo = "data/media/" + nombreArchivo
+
+    #    response = requests.get(image['original'])
+    #    open(rutaArchivo, "wb").write(response.content)
+
+    #    listaArchivos.append(rutaArchivo)
+
+    #    with open(rutaArchivo, 'rb') as fh:
+    #        data = fh.read()
+    #        media = InputMediaPhoto(data)
+    #        listaFotos.append(media)
+
+    #bot.send_media_group(chat_id, listaFotos, disable_notification=True)
+    bot.send_message(chat_id, text, parse_mode="HTML")
+
+    #for foto in listaArchivos:
+    #    os.remove(foto)
 
 
 def get_url_list(search):
@@ -90,7 +111,7 @@ def get_items(url, chat_id):
             if i is None:
                 creationDate = datetime.fromtimestamp(x['creation_date'] / 1000).strftime('%c')
                 db.add_item(x['id'], chat_id, x['title'], x['price'], x['web_slug'], x['user']['id'], creationDate)
-                notel(chat_id, x['price'], x['title'], x['web_slug'])
+                notel(chat_id, x['price'], x['title'], x['web_slug'], None, x['images'])
                 logging.info('New: id=%s, price=%s, title=%s', str(x['id']), locale.currency(x['price'], grouping=True), x['title'])
             else:
                 # Si está comparar precio...
