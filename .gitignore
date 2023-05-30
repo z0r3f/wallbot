@@ -7,3 +7,4 @@ db.sqlite
 log
 wallbot.log.*
 .DS_Store
+*.ps1
