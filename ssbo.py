@@ -316,7 +316,7 @@ if PROFILE is None:
     pathlog = '/logs/' + pathlog
 
 logging.basicConfig(
-    handlers=[RotatingFileHandler(pathlog, maxBytes=1000000, backupCount=10)],
+    handlers=[RotatingFileHandler(pathlog, maxBytes=1000000, backupCount=10, encoding='utf-8')],
 #    filename='wallbot.log',
     level=logging.INFO,
     format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %H:%M:%S')
