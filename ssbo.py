@@ -230,23 +230,40 @@ def borrarBusqueda(call):
 
 
 def listar(call):
+    json = get_categories(URL_CATEGORIES)
     text = ''
-
+    cont = 1
+    
     for chat_search in db.get_chat_searchs(call.message.chat.id):
         if len(text) > 0:
             text += '\n'
-        text += chat_search.kws
-        text += '|'
+        text += "<b>" + str(cont) + ". Busqueda:</b> " + chat_search.kws
+        text += '\n'
+
         if chat_search.min_price is not None:
-            text += chat_search.min_price
+            text += "<b>Rango precio:</b> " + chat_search.min_price
         text += '-'
         if chat_search.max_price is not None:
-            text += chat_search.max_price
+            text += chat_search.max_price + "€"
+        else:
+            text += "€"
+
+        text += '\n'
+
         if chat_search.cat_ids is not None:
-            text += '|'
-            text += chat_search.cat_ids
+            idCategoria = int(chat_search.cat_ids)
+
+            for categoria in json['categories']:
+                if categoria['id'] == idCategoria:
+                    categoria = "<b>Categoria:</b> " + categoria['name']
+                    text += categoria
+                    break
+        text += '\n'
+        text += '------------------------------------------------------'
+        cont += 1
+
     if len(text) > 0:
-        bot.send_message(call.message.chat.id, (text,))
+        bot.send_message(call.message.chat.id, text, parse_mode='HTML')
 
 
 def categorias(call):
