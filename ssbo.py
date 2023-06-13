@@ -222,6 +222,10 @@ def guardarRangoPrecio(message):
 
     data = get_categories(URL_CATEGORIES)
     keyboard = types.InlineKeyboardMarkup()
+
+    boton = types.InlineKeyboardButton("Todos" , callback_data='categoria,' + "all")
+    keyboard.add(boton)
+
     for x in data['categories']:
         boton = types.InlineKeyboardButton(str(x['name']), callback_data='categoria,' + str(x['id']))
         keyboard.add(boton)
@@ -239,7 +243,11 @@ def handle_query(call):
 
 
 def guardarCategoria(call):
-    cs.cat_ids = call.message.text
+    if call.message.text == 'all':
+        cs.cat_ids = None
+    else:
+        cs.cat_ids = call.message.text
+
     fecha = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     cs.publish_date = fecha
     logging.info('%s', cs)
@@ -287,6 +295,9 @@ def listar(call):
                     categoria = "<b>Categoria:</b> " + categoria['name']
                     text += categoria
                     break
+        else:
+            text += "<b>Categoria:</b> Todos"
+
         text += '\n'
         text += '------------------------------------------------------'
         cont += 1
