@@ -38,10 +38,27 @@ ICON_ARROW       = u'\U000027A1'  # ➡
 
 
 def notel(chat_id, price, title, description, creation_date, url_item, obs=None, images=None):
+    try:
+        archivo = urlparse(images[0]['original'])
+        nombreArchivo = os.path.basename(archivo.path)
+        rutaArchivo = "/data/media/" + nombreArchivo
+
+        response = requests.get(images[0]['original'])
+        open(rutaArchivo, "wb").write(response.content)
+
+        with open(rutaArchivo, 'rb') as fh:
+            data = fh.read()
+
+        bot.send_photo(chat_id, data, disable_notification=True)
+        os.remove(rutaArchivo)
+    except Exception as e:
+        logging.error(e)
+
     if obs is not None:
         text = ICON_EXCLAMATION
     else:
         text = ICON_DIRECT_HIT_
+
     text += ' <b>' + title + '</b>'
     text += '\n\n'
 
@@ -64,8 +81,7 @@ def notel(chat_id, price, title, description, creation_date, url_item, obs=None,
     text += '\n'
     urlAnuncio = 'https://es.wallapop.com/item/' + url_item
 
-    bot.send_message(chat_id, text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text='Ir al anuncio', url=urlAnuncio)]])
-)
+    bot.send_message(chat_id, text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text='Ir al anuncio', url=urlAnuncio)]]))
 
 
 def get_url_list(search):
