@@ -53,29 +53,7 @@ def notel(chat_id, price, title, url_item, obs=None, images=None):
     text += 'https://es.wallapop.com/item/'
     text += url_item
 
-    #listaFotos = []
-    #listaArchivos = []
-
-    #for image in images:
-    #    archivo = urlparse(image['original'])
-    #    nombreArchivo = os.path.basename(archivo.path)
-    #    rutaArchivo = "data/media/" + nombreArchivo
-
-    #    response = requests.get(image['original'])
-    #    open(rutaArchivo, "wb").write(response.content)
-
-    #    listaArchivos.append(rutaArchivo)
-
-    #    with open(rutaArchivo, 'rb') as fh:
-    #        data = fh.read()
-    #        media = InputMediaPhoto(data)
-    #        listaFotos.append(media)
-
-    #bot.send_media_group(chat_id, listaFotos, disable_notification=True)
     bot.send_message(chat_id, text, parse_mode="HTML")
-
-    #for foto in listaArchivos:
-    #    os.remove(foto)
 
 
 def get_url_list(search):
