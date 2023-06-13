@@ -188,11 +188,10 @@ def inicio(call):
     boton_añadir = types.InlineKeyboardButton('Añadir', callback_data='añadir')
     boton_listar = types.InlineKeyboardButton('Listar', callback_data='listar')
     boton_borrar = types.InlineKeyboardButton('Borrar', callback_data='borrar')
-    boton_categorias = types.InlineKeyboardButton('Categorias', callback_data='categorias')
 
     keyboard = types.InlineKeyboardMarkup()
     keyboard.row(boton_añadir, boton_listar)
-    keyboard.row(boton_borrar, boton_categorias)
+    keyboard.row(boton_borrar)
 
     bot.send_message(call.chat.id, text='Selecciona una acción a realizar', reply_markup=keyboard)
 
@@ -304,18 +303,6 @@ def listar(call):
 
     if len(text) > 0:
         bot.send_message(call.message.chat.id, text, parse_mode='HTML')
-
-
-def categorias(call):
-    data = get_categories(URL_CATEGORIES)
-
-    texto = "*Categorias:*\n\n"
-
-    for x in data['categories']:
-        texto += "*" + str(x['name']) + "*\n"
-        texto += "\t`" + str(x['id']) + "`\n"
-
-    bot.send_message(call.message.chat.id, texto, parse_mode='Markdown')
 
 
 # /add búsqueda,min-max,categorías separadas por comas
