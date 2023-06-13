@@ -234,6 +234,8 @@ def handle_query(call):
 
 def guardarCategoria(call):
     cs.cat_ids = call.message.text
+    fecha = datetime.now().strftime("%c")
+    cs.publish_date = fecha
     logging.info('%s', cs)
     db.add_search(cs)
     bot.send_message(call.message.chat.id, "Busqueda guardada")
