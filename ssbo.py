@@ -87,7 +87,7 @@ def get_items(url, chat_id):
             logging.info('Encontrado: id=%s, price=%s, title=%s, user=%s',str(x['id']), locale.currency(x['price'], grouping=True), x['title'], x['user']['id'])
             i = db.search_item(x['id'], chat_id)
             if i is None:
-                creationDate = datetime.fromtimestamp(x['creation_date'] / 1000).strftime('%c')
+                creationDate = datetime.fromtimestamp(x['creation_date'] / 1000).strftime("%d/%m/%Y %H:%M:%S")
                 db.add_item(x['id'], chat_id, x['title'], x['price'], x['web_slug'], x['user']['id'], creationDate)
                 notel(chat_id, x['price'], x['title'], x['web_slug'], None, x['images'])
                 logging.info('New: id=%s, price=%s, title=%s', str(x['id']), locale.currency(x['price'], grouping=True), x['title'])
@@ -212,7 +212,7 @@ def handle_query(call):
 
 def guardarCategoria(call):
     cs.cat_ids = call.message.text
-    fecha = datetime.now().strftime("%c")
+    fecha = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     cs.publish_date = fecha
     logging.info('%s', cs)
     db.add_search(cs)
