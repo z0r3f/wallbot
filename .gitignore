@@ -9,3 +9,4 @@ wallbot.log.*
 .DS_Store
 *.ps1
 .env
+data/
