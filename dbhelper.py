@@ -50,7 +50,7 @@ class DBHelper:
                   "price text, " \
                   "url text, " \
                   "user text, " \
-                  "publishDate integer, " \
+                  "publishDate text, " \
                   "observaciones text, " \
                   "item text, " \
                   " primary key (itemId,chatId))"
@@ -63,7 +63,7 @@ class DBHelper:
                       "min_price text, " \
                       "max_price text, " \
                       "dist text default \'400\', " \
-                      "publish_date integer default 24, " \
+                      "publish_date text, " \
                       "ord text default \'newest\', " \
                       "username text, " \
                       "name text, " \
