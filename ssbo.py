@@ -34,6 +34,7 @@ ICON_HIGH_VOLTAG = u'\U000026A1'  # ⚡️
 ICON_COLLISION__ = u'\U0001F4A5'  # 💥
 ICON_EXCLAMATION = u'\U00002757'  # ❗
 ICON_DIRECT_HIT_ = u'\U0001F3AF'  # 🎯
+ICON_ARROW       = u'\U000027A1'  # ➡
 
 
 def notel(chat_id, price, title, url_item, obs=None, images=None):
@@ -231,8 +232,9 @@ def borrarBusqueda(call):
 
 def listar(call):
     json = get_categories(URL_CATEGORIES)
-    text = ''
     cont = 1
+
+    text = ICON_ARROW + ' <b>Lista de productos en seguimiento:</b>\n'
     
     for chat_search in db.get_chat_searchs(call.message.chat.id):
         if len(text) > 0:
