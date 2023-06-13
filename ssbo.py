@@ -13,7 +13,7 @@ from decimal import Decimal
 from logging.handlers import RotatingFileHandler
 from telebot import TeleBot
 from telebot import types
-from telebot.types import InputMediaPhoto, InputMediaVideo
+from telebot.types import InputMediaPhoto, InputMediaVideo, InlineKeyboardMarkup, InlineKeyboardButton
 from datetime import datetime
 from urllib.parse import urlparse
 
@@ -37,24 +37,51 @@ ICON_DIRECT_HIT_ = u'\U0001F3AF'  # 🎯
 ICON_ARROW       = u'\U000027A1'  # ➡
 
 
-def notel(chat_id, price, title, url_item, obs=None, images=None):
+def notel(chat_id, price, title, description, creation_date, url_item, obs=None, images=None):
+    try:
+        archivo = urlparse(images[0]['original'])
+        nombreArchivo = os.path.basename(archivo.path)
+        rutaArchivo = "/data/media/" + nombreArchivo
+
+        response = requests.get(images[0]['original'])
+        open(rutaArchivo, "wb").write(response.content)
+
+        with open(rutaArchivo, 'rb') as fh:
+            data = fh.read()
+
+        bot.send_photo(chat_id, data, disable_notification=True)
+        os.remove(rutaArchivo)
+    except Exception as e:
+        logging.error(e)
+
     if obs is not None:
         text = ICON_EXCLAMATION
     else:
         text = ICON_DIRECT_HIT_
+
     text += ' <b>' + title + '</b>'
-    text += '\n'
+    text += '\n\n'
+
+    text += "<b>Descripción: </b>" + description
+    text += '\n\n'
+
+    text += "<b>Fecha de publicación: </b>" + creation_date
+    text += '\n\n'
+
+    text += "<b>Precio: </b>" + locale.currency(price, grouping=True)
+    text += '\n\n'
+
     if obs is not None:
         text += ICON_COLLISION__ + ' '
-    text += locale.currency(price, grouping=True)
+
     if obs is not None:
         text += obs
         text += ' ' + ICON_COLLISION__
-    text += '\n'
-    text += 'https://es.wallapop.com/item/'
-    text += url_item
 
-    bot.send_message(chat_id, text, parse_mode="HTML")
+    text += '\n'
+    urlAnuncio = 'https://es.wallapop.com/item/' + url_item
+
+    bot.send_message(chat_id, text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text='Ir al anuncio', url=urlAnuncio)]]))
 
 
 def get_url_list(search):
@@ -90,7 +117,7 @@ def get_items(url, chat_id):
             if i is None:
                 creationDate = datetime.fromtimestamp(x['creation_date'] / 1000).strftime("%d/%m/%Y %H:%M:%S")
                 db.add_item(x['id'], chat_id, x['title'], x['price'], x['web_slug'], x['user']['id'], creationDate)
-                notel(chat_id, x['price'], x['title'], x['web_slug'], None, x['images'])
+                notel(chat_id, x['price'], x['title'], x['description'], creationDate, x['web_slug'], None, x['images'])
                 logging.info('New: id=%s, price=%s, title=%s', str(x['id']), locale.currency(x['price'], grouping=True), x['title'])
             else:
                 # Si está comparar precio...

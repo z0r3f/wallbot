@@ -22,6 +22,7 @@ COPY ssbo.py .
 COPY dbhelper.py .
 
 RUN mkdir /data
+RUN mkdir /data/media
 RUN mkdir /logs
 
 CMD [ "python3", "./ssbo.py"]
