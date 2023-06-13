@@ -179,11 +179,6 @@ def process_callback_borrar(call):
     borrar(call)
 
 
-@bot.callback_query_handler(lambda call: call.data == "categorias")
-def process_callback_categorias(call):
-    categorias(call)
-
-
 def inicio(call):
     boton_añadir = types.InlineKeyboardButton('Añadir', callback_data='añadir')
     boton_listar = types.InlineKeyboardButton('Listar', callback_data='listar')
