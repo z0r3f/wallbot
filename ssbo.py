@@ -261,7 +261,7 @@ def borrar(call):
     busquedas = db.get_chat_searchs(call.message.chat.id)
     
     if len(busquedas) == 0:
-        text = '<b>No hay ninguna busqueda para borrar.</b>\n'
+        text = '<b>No hay ninguna busqueda para borrar</b>\n'
         bot.send_message(call.message.chat.id, text, parse_mode='HTML')
     else:    
         keyboard = types.InlineKeyboardMarkup()
@@ -277,46 +277,51 @@ def borrarBusqueda(chatId, text):
 
 
 def listar(call):
-    json = get_categories(URL_CATEGORIES)
-    cont = 1
+    busquedas = db.get_chat_searchs(call.message.chat.id)
 
-    text = ICON_ARROW + ' <b>Lista de productos en seguimiento:</b>\n'
-    
-    for chat_search in db.get_chat_searchs(call.message.chat.id):
-        if len(text) > 0:
+    if len(busquedas) == 0:
+        text = '<b>No hay ninguna busqueda creada</b>\n'
+        bot.send_message(call.message.chat.id, text, parse_mode='HTML')
+    else:
+        json = get_categories(URL_CATEGORIES)
+        cont = 1
+
+        text = ICON_ARROW + ' <b>Lista de productos en seguimiento:</b>\n'
+        
+        for busqueda in busquedas:
+            if len(text) > 0:
+                text += '\n'
+            text += "<b>" + str(cont) + ". Busqueda:</b> " + busqueda.kws
             text += '\n'
-        text += "<b>" + str(cont) + ". Busqueda:</b> " + chat_search.kws
-        text += '\n'
 
-        if chat_search.min_price is not None:
-            text += "<b>Rango precio:</b> " + chat_search.min_price
-        text += '-'
-        if chat_search.max_price is not None:
-            text += chat_search.max_price + "€"
-        else:
-            text += "€"
+            if busqueda.min_price is not None:
+                text += "<b>Rango precio:</b> " + busqueda.min_price
+            text += '-'
+            if busqueda.max_price is not None:
+                text += busqueda.max_price + "€"
+            else:
+                text += "€"
 
-        text += '\n'
+            text += '\n'
 
-        if chat_search.cat_ids is not None:
-            idCategoria = int(chat_search.cat_ids)
+            if busqueda.cat_ids is not None:
+                idCategoria = int(busqueda.cat_ids)
 
-            for categoria in json['categories']:
-                if categoria['id'] == idCategoria:
-                    categoria = "<b>Categoria:</b> " + categoria['name']
-                    text += categoria
-                    break
-        else:
-            text += "<b>Categoria:</b> Todos"
+                for categoria in json['categories']:
+                    if categoria['id'] == idCategoria:
+                        categoria = "<b>Categoria:</b> " + categoria['name']
+                        text += categoria
+                        break
+            else:
+                text += "<b>Categoria:</b> Todos"
 
-        text += '\n'
-        text += '------------------------------------------------------'
-        cont += 1
+            text += '\n'
+            text += '------------------------------------------------------'
+            cont += 1
 
-    if len(text) > 0:
         bot.send_message(call.message.chat.id, text, parse_mode='HTML')
 
-
+        
 # /add búsqueda,min-max,categorías separadas por comas
 @bot.message_handler(commands=['add', 'añadir', 'append', 'a'])
 def add_search(message):
