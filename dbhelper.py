@@ -176,7 +176,7 @@ class DBHelper:
     
     def search_chat_search_by_title(self, title, chat_id):
         stmt = "select chat_id, kws, cat_ids, min_price, max_price, dist, publish_date, ord, username, name, active " \
-                 "from chat_search where kws = (?) and chat_id = (?)"
+                 "from chat_search where kws = (?) and chat_id = (?) and active = 1"
         args = (title, chat_id)
         try:
             for row in self.conn.execute(stmt, args):
