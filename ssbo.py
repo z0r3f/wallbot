@@ -197,11 +197,15 @@ def añadir(call):
 
 
 def guardarBusqueda(message):
-    cs.chat_id = message.chat.id
-    cs.kws = message.text
+    busqueda = db.search_chat_search_by_title(message.text, message.chat.id)
 
-    rangoPrecio = bot.send_message(message.chat.id,  'Introduce el rango de precio (min-max):')
-    bot.register_next_step_handler(rangoPrecio, guardarRangoPrecio)
+    if busqueda is not None:
+        bot.send_message(message.chat.id,  'Esa busqueda ya ha sido registrada')
+    else:
+        cs.chat_id = message.chat.id
+        cs.kws = message.text
+        rangoPrecio = bot.send_message(message.chat.id,  'Introduce el rango de precio (min-max):')
+        bot.register_next_step_handler(rangoPrecio, guardarRangoPrecio)
 
 
 def guardarRangoPrecio(message):

@@ -173,6 +173,18 @@ class DBHelper:
         except Exception as e:
             print(e)
         return None
+    
+    def search_chat_search_by_title(self, title, chat_id):
+        stmt = "select chat_id, kws, cat_ids, min_price, max_price, dist, publish_date, ord, username, name, active " \
+                 "from chat_search where kws = (?) and chat_id = (?)"
+        args = (title, chat_id)
+        try:
+            for row in self.conn.execute(stmt, args):
+                i = ChatSearch(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10])
+                return i
+        except Exception as e:
+            print(e)
+        return None
 
     def get_chat_searchs(self, chat_id):
         stmt = "select chat_id, kws, cat_ids, min_price, max_price, dist, publish_date, ord from chat_search " \
