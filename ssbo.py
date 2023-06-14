@@ -354,7 +354,7 @@ def wallapop():
             # Lanza las búsquedas y notificaciones ...
             get_items(u, search.chat_id)
 
-        time.sleep(300)
+        time.sleep(60)
         continue
 
 
