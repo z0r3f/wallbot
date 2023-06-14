@@ -47,9 +47,9 @@ def notel(chat_id, price, title, description, creation_date, url_item, obs=None,
         open(rutaArchivo, "wb").write(response.content)
 
         with open(rutaArchivo, 'rb') as fh:
-            data = fh.read()
+            image = fh.read()
 
-        bot.send_photo(chat_id, data, disable_notification=True)
+        bot.send_photo(chat_id, image, disable_notification=True)
         os.remove(rutaArchivo)
     except Exception as e:
         logging.error(e)
@@ -111,17 +111,17 @@ def get_items(url, chat_id):
     try:
         resp = requests.get(url=url)
         data = resp.json()
-        for x in data['search_objects']:
-            logging.info('Encontrado: id=%s, price=%s, title=%s, user=%s',str(x['id']), locale.currency(x['price'], grouping=True), x['title'], x['user']['id'])
-            i = db.search_item(x['id'], chat_id)
+        for producto in data['search_objects']:
+            logging.info('Encontrado: id=%s, price=%s, title=%s, user=%s',str(producto['id']), locale.currency(producto['price'], grouping=True), producto['title'], producto['user']['id'])
+            i = db.search_item(producto['id'], chat_id)
             if i is None:
-                creationDate = datetime.fromtimestamp(x['creation_date'] / 1000).strftime("%d/%m/%Y %H:%M:%S")
-                db.add_item(x['id'], chat_id, x['title'], x['price'], x['web_slug'], x['user']['id'], creationDate)
-                notel(chat_id, x['price'], x['title'], x['description'], creationDate, x['web_slug'], None, x['images'])
-                logging.info('New: id=%s, price=%s, title=%s', str(x['id']), locale.currency(x['price'], grouping=True), x['title'])
+                creationDate = datetime.fromtimestamp(producto['creation_date'] / 1000).strftime("%d/%m/%Y %H:%M:%S")
+                db.add_item(producto['id'], chat_id, producto['title'], producto['price'], producto['web_slug'], producto['user']['id'], creationDate)
+                notel(chat_id, producto['price'], producto['title'], producto['description'], creationDate, producto['web_slug'], None, producto['images'])
+                logging.info('New: id=%s, price=%s, title=%s', str(producto['id']), locale.currency(producto['price'], grouping=True), producto['title'])
             else:
                 # Si está comparar precio...
-                money = str(x['price'])
+                money = str(producto['price'])
                 value_json = Decimal(sub(r'[^\d.]', '', money))
                 value_db = Decimal(sub(r'[^\d.]', '', i.price))
                 if value_json < value_db:
@@ -129,10 +129,10 @@ def get_items(url, chat_id):
                     if i.observaciones is not None:
                         new_obs += ' < '
                         new_obs += i.observaciones
-                    db.update_item(x['id'], money, new_obs)
+                    db.update_item(producto['id'], money, new_obs)
                     obs = ' < ' + new_obs
-                    notel(chat_id, x['price'], x['title'], x['web_slug'], obs)
-                    logging.info('Baja: id=%s, price=%s, title=%s', str(x['id']), locale.currency(x['price'], grouping=True), x['title'])
+                    notel(chat_id, producto['price'], producto['title'], producto['web_slug'], obs)
+                    logging.info('Baja: id=%s, price=%s, title=%s', str(producto['id']), locale.currency(producto['price'], grouping=True), producto['title'])
     except Exception as e:
         logging.error(e)
 
@@ -220,8 +220,8 @@ def guardarRangoPrecio(message):
     boton = types.InlineKeyboardButton("Todos" , callback_data='categoria,' + "all")
     keyboard.add(boton)
 
-    for x in data['categories']:
-        boton = types.InlineKeyboardButton(str(x['name']), callback_data='categoria,' + str(x['id']))
+    for categoria in data['categories']:
+        boton = types.InlineKeyboardButton(str(categoria['name']), callback_data='categoria,' + str(categoria['id']))
         keyboard.add(boton)
 
     bot.send_message(message.chat.id, text='Selecciona una categoria', reply_markup=keyboard)
