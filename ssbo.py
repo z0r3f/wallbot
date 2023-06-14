@@ -238,6 +238,10 @@ def handle_query(call):
         categoriaId = catAux[1]
         call.message.text = categoriaId
         guardarCategoria(call)
+    elif catAux[0] == "id":
+        chatId = catAux[1]
+        id = catAux[2]
+        borrarBusqueda(chatId, id)
 
 
 def guardarCategoria(call):
@@ -254,13 +258,22 @@ def guardarCategoria(call):
 
 
 def borrar(call):
-    busquedaBorrar = bot.send_message(call.message.chat.id,  'Introduce la busqueda a borrar:')
-    bot.register_next_step_handler(busquedaBorrar, borrarBusqueda)
+    busquedas = db.get_chat_searchs(call.message.chat.id)
+    
+    if len(busquedas) == 0:
+        text = '<b>No hay ninguna busqueda para borrar.</b>\n'
+        bot.send_message(call.message.chat.id, text, parse_mode='HTML')
+    else:    
+        keyboard = types.InlineKeyboardMarkup()
+        for busqueda in busquedas:
+            boton = types.InlineKeyboardButton(busqueda.kws, callback_data='id,' + str(call.message.chat.id) + ',' + busqueda.kws)
+            keyboard.add(boton) 
 
+        bot.send_message(call.message.chat.id, text='Escoge que producto quieres borrar', reply_markup=keyboard)
 
-def borrarBusqueda(call):
-    db.del_chat_search(call.chat.id, call.text)
-    bot.send_message(call.chat.id, "Busqueda borrada")
+def borrarBusqueda(chatId, text):
+    db.del_chat_search(chatId, text)
+    bot.send_message(chatId, "Busqueda borrada")
 
 
 def listar(call):
