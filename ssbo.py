@@ -55,7 +55,7 @@ def notel(chat_id, price, title, description, creation_date, url_item, obs=None,
             image = fh.read()
 
         bot.send_photo(chat_id, image, disable_notification=True)
-        os.remove(rutaArchivo)
+
     except Exception as e:
         logging.error(e)
 
@@ -138,6 +138,10 @@ def get_items(url, chat_id):
                     obs = ' < ' + new_obs
                     notel(chat_id, producto['price'], producto['title'], producto['web_slug'], obs)
                     logging.info('Baja: id=%s, price=%s, title=%s', str(producto['id']), locale.currency(producto['price'], grouping=True), producto['title'])
+
+            # Borrar fotos productos
+            borrarFotos()
+
     except Exception as e:
         logging.error(e)
 
@@ -424,6 +428,20 @@ def ayuda(message):
     text += "\n\n"
     text += "Bot creado por @Tamasco69"
     bot.send_message(message.chat.id, text, parse_mode='HTML')
+
+
+def borrarFotos():
+    folder_path = '/data/media'
+    photo_extensions = ['.jpg', '.jpeg', '.png', '.gif']  # Extensiones de archivo de las fotos
+    file_list = os.listdir(folder_path)
+    photo_list = [file for file in file_list if os.path.splitext(file)[1].lower() in photo_extensions]
+
+    for photo in photo_list:
+        try:
+            photo_path = os.path.join(folder_path, photo)
+            os.remove(photo_path)
+        except Exception as e:
+            logging.error(e)
 
 
 pathlog = 'wallbot.log'
