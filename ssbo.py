@@ -163,9 +163,44 @@ def handle_exception(self, exception):
 bot = telebot.TeleBot(TOKEN)
 cs = ChatSearch()
 
-@bot.message_handler(commands=['start', 'help', 'menu', 's', 'h', 'm'])
+@bot.message_handler(commands=['start', 'menu', 's', 'm'])
 def send_test(message):
     inicio(message)
+
+
+@bot.message_handler(commands=['help', 'h'])
+def send_test(message):
+    ayuda(message)
+
+
+# /add búsqueda,min-max,categorías separadas por comas
+@bot.message_handler(commands=['add', 'añadir', 'append', 'a'])
+def add_search(message):
+    cs = ChatSearch()
+    cs.chat_id = message.chat.id
+    parametros = str(message.text).split(' ', 1)
+    if len(parametros) < 2:
+        # Solo puso el comando
+        return
+    token = ' '.join(parametros[1:]).split(',')
+    if len(token) < 1:
+        # Puso un espacio después del comando, nada más
+        return
+    cs.kws = token[0].strip()
+    if len(token) > 1:
+        rango = token[1].split('-')
+        cs.min_price = rango[0].strip()
+        if len(rango) > 1:
+            cs.max_price = rango[1].strip()
+    if len(token) > 2:
+        cs.cat_ids = sub('[\s+]', '', ','.join(token[2:]))
+        if len(cs.cat_ids) == 0:
+            cs.cat_ids = None
+    cs.username = message.from_user.username
+    cs.name = message.from_user.first_name
+    cs.active = 1
+    logging.info('%s', cs)
+    db.add_search(cs)
 
 
 @bot.callback_query_handler(lambda call: call.data == "añadir")
@@ -354,34 +389,11 @@ def estadisticas(call):
         bot.send_message(call.message.chat.id, text, parse_mode='HTML')
 
 
-# /add búsqueda,min-max,categorías separadas por comas
-@bot.message_handler(commands=['add', 'añadir', 'append', 'a'])
-def add_search(message):
-    cs = ChatSearch()
-    cs.chat_id = message.chat.id
-    parametros = str(message.text).split(' ', 1)
-    if len(parametros) < 2:
-        # Solo puso el comando
-        return
-    token = ' '.join(parametros[1:]).split(',')
-    if len(token) < 1:
-        # Puso un espacio después del comando, nada más
-        return
-    cs.kws = token[0].strip()
-    if len(token) > 1:
-        rango = token[1].split('-')
-        cs.min_price = rango[0].strip()
-        if len(rango) > 1:
-            cs.max_price = rango[1].strip()
-    if len(token) > 2:
-        cs.cat_ids = sub('[\s+]', '', ','.join(token[2:]))
-        if len(cs.cat_ids) == 0:
-            cs.cat_ids = None
-    cs.username = message.from_user.username
-    cs.name = message.from_user.first_name
-    cs.active = 1
-    logging.info('%s', cs)
-    db.add_search(cs)
+def ayuda(message):
+    text = "Usa este bot para crear busquedas en Wallapop, y obtener avisos instantaneos de la subida de nuevos productos."
+    text += "\n\n"
+    text += "Bot creado por @Tamasco69"
+    bot.send_message(message.chat.id, text, parse_mode='HTML')
 
 
 pathlog = 'wallbot.log'
