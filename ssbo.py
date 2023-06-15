@@ -234,6 +234,8 @@ def enviarAviso(message):
                 for usuario in usuarios:
                     try:
                         bot.send_message(usuario, aviso, parse_mode='HTML')
+                        text = "Aviso enviado a: " + str(usuario)
+                        bot.send_message(CHAT_ID_ADMIN, text, parse_mode='HTML')
                     except Exception as e:
                         logging.error(e)
 
