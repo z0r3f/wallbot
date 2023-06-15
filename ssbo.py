@@ -21,6 +21,7 @@ TOKEN = os.getenv("BOT_TOKEN", "Bot Token does not exist")
 URL_ITEMS = "https://api.wallapop.com/api/v3/general/search"
 URL_CATEGORIES = "https://api.wallapop.com/api/v3/categories"
 PROFILE = os.getenv("PROFILE")
+PASSWORD_AVISO = os.getenv("PASSWORD_AVISO")
 
 if PROFILE is None:
     db = DBHelper()
@@ -201,6 +202,35 @@ def add_search(message):
     cs.active = 1
     logging.info('%s', cs)
     db.add_search(cs)
+
+
+@bot.message_handler(commands=['aviso'])
+def enviarAviso(message):
+    parametros = str(message.text).split(' ', 1)
+    if len(parametros) < 2:
+        return
+    
+    token = ' '.join(parametros[1:]).split(',')
+    if len(token) < 1:
+        return
+    
+    password  = token[0].strip()
+
+    if password != PASSWORD_AVISO:
+        return
+    
+    if len(token) > 1:
+        aviso  = token[1].strip()
+
+        if len(aviso) > 2:
+            usuarios = db.get_usuarios()
+
+            if len(usuarios) > 0:
+                for usuario in usuarios:
+                    try:
+                        bot.send_message(usuario, aviso, parse_mode='HTML')
+                    except Exception as e:
+                        logging.error(e)
 
 
 @bot.callback_query_handler(lambda call: call.data == "añadir")

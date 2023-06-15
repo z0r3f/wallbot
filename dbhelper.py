@@ -238,3 +238,13 @@ class DBHelper:
         except Exception as e:
             print(e)
         return lista
+    
+    def get_usuarios(self):
+        stmt = "SELECT DISTINCT chat_id FROM chat_search "
+        lista = []
+        try:
+            for row in self.conn.execute(stmt):
+                lista.append(row[0])
+        except Exception as e:
+            print(e)
+        return lista
