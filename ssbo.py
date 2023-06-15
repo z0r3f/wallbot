@@ -245,7 +245,7 @@ def enviarAviso(message):
 
 
 @bot.message_handler(commands=['usuariosbloqueados'])
-def enviarAviso(message):
+def buscarUsuarios(message):
     parametros = str(message.text).split(' ', 1)
     if len(parametros) < 2:
         return
@@ -546,7 +546,9 @@ def buscarUsuariosBloqueados():
                 message = bot.send_message(usuario, 'Hola, este es un mensaje de prueba', disable_notification=True)
                 bot.delete_message(usuario, message.message_id)
                 print("El mensaje ha sido enviado y borrado: " + str(usuario))
+                logging.info("El mensaje ha sido enviado y borrado: " + str(usuario))
             except ApiTelegramException as e:
+                logging.error(e)
                 if e.description == "Forbidden: bot was blocked by the user":
                     text = "ATENCION! El usuario {} ha bloqueado el bot. No se le pueden enviar mensajes.".format(usuario)
                     logging.info(text)
