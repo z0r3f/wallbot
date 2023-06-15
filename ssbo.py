@@ -44,7 +44,7 @@ ICON_USER        = u'\U0001F464'  # 👤
 ICON_MONEY       = u'\U0001F4B8'  # 💸
 
 
-def notel(chat_id, price, title, description, creation_date, url_item, obs=None, images=None):
+def notel(chat_id, price, title, description, creation_date, location, url_item, obs=None, images=None):
     try:
         archivo = urlparse(images[0]['original'])
         nombreArchivo = os.path.basename(archivo.path)
@@ -73,6 +73,9 @@ def notel(chat_id, price, title, description, creation_date, url_item, obs=None,
     text += '\n\n'
 
     text += "<b>Fecha de publicación: </b>" + creation_date
+    text += '\n\n'
+
+    text += "<b>Ubicación: </b>" + location
     text += '\n\n'
 
     text += "<b>Precio: </b>" + locale.currency(price, grouping=True)
@@ -124,7 +127,7 @@ def get_items(url, chat_id):
             if i is None:
                 creationDate = datetime.fromtimestamp(producto['creation_date'] / 1000).strftime("%d/%m/%Y %H:%M:%S")
                 db.add_item(producto['id'], chat_id, producto['title'], producto['price'], producto['web_slug'], producto['user']['id'], creationDate)
-                notel(chat_id, producto['price'], producto['title'], producto['description'], creationDate, producto['web_slug'], None, producto['images'])
+                notel(chat_id, producto['price'], producto['title'], producto['description'], creationDate, producto['location']['city'], producto['web_slug'], None, producto['images'])
                 logging.info('New: id=%s, price=%s, title=%s', str(producto['id']), locale.currency(producto['price'], grouping=True), producto['title'])
             else:
                 # Si está comparar precio...
@@ -138,7 +141,7 @@ def get_items(url, chat_id):
                         new_obs += i.observaciones
                     db.update_item(producto['id'], money, new_obs)
                     obs = ' < ' + new_obs
-                    notel(chat_id, producto['price'], producto['title'], producto['web_slug'], obs)
+                    notel(chat_id, producto['price'], producto['title'], producto['description'], creationDate, producto['location']['city'], producto['web_slug'], obs)
                     logging.info('Baja: id=%s, price=%s, title=%s', str(producto['id']), locale.currency(producto['price'], grouping=True), producto['title'])
 
             # Borrar fotos productos
