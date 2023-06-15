@@ -5,7 +5,7 @@ import time
 class ChatSearch:
 
     def __init__(self, chat_id=None, kws=None, cat_ids=None, min_price=None, max_price=None,
-                 dist=None, publish_date=None, orde=None, username=None, name=None, active=None):
+                 dist=None, publish_date=None, orde=None, username=None, name=None, active=None, user_active=None):
         self.chat_id = chat_id
         self.kws = kws
         self.cat_ids = cat_ids
@@ -17,6 +17,7 @@ class ChatSearch:
         self.username = username
         self.name = name
         self.active = active
+        self.user_active = user_active
 
     def __str__(self) -> str:
         return "<ChatSearch chat_id:%s kws:%s cat_ids:%s min_price:%s max_price:%s " \
@@ -210,12 +211,12 @@ class DBHelper:
         return lista
 
     def get_chats_searchs(self):
-        stmt = "select chat_id, kws, cat_ids, min_price, max_price, dist, publish_date, ord from chat_search " \
-                "where active = 1"
+        stmt = "select chat_id, kws, cat_ids, min_price, max_price, dist, publish_date, ord, username, name, active, user_active from chat_search " \
+                "where active = 1 and user_active = 1"
         lista = []
         try:
             for row in self.conn.execute(stmt):
-                c = ChatSearch(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7])
+                c = ChatSearch(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11])
                 lista.append(c)
         except Exception as e:
             print(e)
