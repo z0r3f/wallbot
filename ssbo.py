@@ -355,9 +355,12 @@ def guardarCategoria(call):
         text = ICON_WARNING____ + " <b>Busqueda guardada</b> " + ICON_WARNING____
         text += "\n\n"
         text += "<b>Busqueda: </b>" + cs.kws + "\n"
-        idCategoria = int(cs.cat_ids)
-        nombreCategoria = obtenerNombreCategoriaById(idCategoria)
-        text += "<b>Categoria: </b>" + nombreCategoria + "\n"
+        if cs.cat_ids != None:
+            idCategoria = int(cs.cat_ids)
+            nombreCategoria = obtenerNombreCategoriaById(idCategoria)
+            text += "<b>Categoria: </b>" + nombreCategoria + "\n"
+        else:
+            text += "<b>Categoria: </b> Todos\n"
         text += "<b>Precio Minimo: </b>" + cs.min_price + "\n"
         text += "<b>Precio Maximo: </b>" + cs.max_price + "\n"
 
