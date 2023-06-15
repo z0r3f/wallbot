@@ -37,6 +37,13 @@ class Item:
         self.item = item
 
 
+class Estadisticas:
+    def __init__(self, total_usuarios, busquedas_activas, productos_encontrados):
+        self.total_usuarios = total_usuarios
+        self.busquedas_activas = busquedas_activas
+        self.productos_encontrados = productos_encontrados
+
+
 class DBHelper:
     def __init__(self, dbname="/data/db.sqlite"):
         self.dbname = dbname
@@ -217,3 +224,17 @@ class DBHelper:
             self.conn.commit()
         except Exception as e:
             print(e)
+
+    def get_estadisticas(self):
+        stmt = "SELECT " \
+                "(SELECT COUNT(DISTINCT chat_id) FROM chat_search) AS total_usuarios," \
+                "(SELECT COUNT(chat_id) FROM chat_search WHERE active = 1) AS busquedas_activas," \
+                "(SELECT COUNT(DISTINCT itemId) FROM item) AS productos_encontrados"
+        lista = []
+        try:
+            for row in self.conn.execute(stmt):
+                c = Estadisticas(row[0], row[1], row[2])
+                lista.append(c)
+        except Exception as e:
+            print(e)
+        return lista

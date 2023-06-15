@@ -35,6 +35,10 @@ ICON_COLLISION__ = u'\U0001F4A5'  # 💥
 ICON_EXCLAMATION = u'\U00002757'  # ❗
 ICON_DIRECT_HIT_ = u'\U0001F3AF'  # 🎯
 ICON_ARROW       = u'\U000027A1'  # ➡
+ICON_BAR_CHART   = u'\U0001F4CA'  # 📊
+ICON_MAGNIFYING  = u'\U0001F50E'  # 🔎
+ICON_USER        = u'\U0001F464'  # 👤
+ICON_MONEY       = u'\U0001F4B8'  # 💸
 
 
 def notel(chat_id, price, title, description, creation_date, url_item, obs=None, images=None):
@@ -179,14 +183,20 @@ def process_callback_borrar(call):
     borrar(call)
 
 
+@bot.callback_query_handler(lambda call: call.data == "estadisticas")
+def process_callback_estadisticas(call):
+    estadisticas(call)
+
+
 def inicio(call):
     boton_añadir = types.InlineKeyboardButton('Añadir', callback_data='añadir')
     boton_listar = types.InlineKeyboardButton('Listar', callback_data='listar')
     boton_borrar = types.InlineKeyboardButton('Borrar', callback_data='borrar')
+    boton_estadi = types.InlineKeyboardButton('Estadisticas', callback_data='estadisticas')
 
     keyboard = types.InlineKeyboardMarkup()
     keyboard.row(boton_añadir, boton_listar)
-    keyboard.row(boton_borrar)
+    keyboard.row(boton_borrar, boton_estadi)
 
     bot.send_message(call.chat.id, text='Selecciona una acción a realizar', reply_markup=keyboard)
 
@@ -271,6 +281,7 @@ def borrar(call):
 
         bot.send_message(call.message.chat.id, text='Escoge que producto quieres borrar', reply_markup=keyboard)
 
+
 def borrarBusqueda(chatId, text):
     db.del_chat_search(chatId, text)
     bot.send_message(chatId, "Busqueda borrada")
@@ -321,7 +332,28 @@ def listar(call):
 
         bot.send_message(call.message.chat.id, text, parse_mode='HTML')
 
+
+def estadisticas(call):
+    estadisticas = db.get_estadisticas()
+
+    if len(estadisticas) == 0:
+        text = '<b>No hay estadisticas</b>\n'
+        bot.send_message(call.message.chat.id, text, parse_mode='HTML')
+    else:
+        text = ICON_BAR_CHART + ' <b>Estadisticas: </b>\n'
+
+        text += ICON_USER + " <b>Total Usuarios:</b> " + str(estadisticas[0].total_usuarios)
+        text += '\n'
+
+        text += ICON_MAGNIFYING + " <b>Busquedas Activas:</b> " + str(estadisticas[0].busquedas_activas)
+        text += '\n'
+
+        text += ICON_MONEY + " <b>Productos Encontrados:</b> " + str(estadisticas[0].productos_encontrados)
+        text += '\n'
         
+        bot.send_message(call.message.chat.id, text, parse_mode='HTML')
+
+
 # /add búsqueda,min-max,categorías separadas por comas
 @bot.message_handler(commands=['add', 'añadir', 'append', 'a'])
 def add_search(message):
