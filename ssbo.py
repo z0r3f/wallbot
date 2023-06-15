@@ -62,7 +62,10 @@ def notel(chat_id, price, title, description, creation_date, location, url_item,
         logging.error(e)
 
     if obs is not None:
-        text = ICON_EXCLAMATION
+        text = ICON_COLLISION__ + ' '
+        text += "<b>¡BAJADA DE PRECIO!</b>"
+        text += ' ' + ICON_COLLISION__
+        text += "\n\n"
     else:
         text = ICON_DIRECT_HIT_
 
@@ -82,11 +85,8 @@ def notel(chat_id, price, title, description, creation_date, location, url_item,
     text += '\n\n'
 
     if obs is not None:
-        text += ICON_COLLISION__ + ' '
-
-    if obs is not None:
-        text += obs
-        text += ' ' + ICON_COLLISION__
+        text += "<b>Precio anterior: </b>" + obs
+        text += "\n"
 
     text += '\n'
     urlAnuncio = 'https://es.wallapop.com/item/' + url_item
@@ -135,13 +135,15 @@ def get_items(url, chat_id):
                 value_json = Decimal(sub(r'[^\d.]', '', money))
                 value_db = Decimal(sub(r'[^\d.]', '', i.price))
                 if value_json < value_db:
-                    new_obs = locale.currency(i.price, grouping=True)
+                    new_obs = locale.currency(float(i.price), grouping=True)
                     if i.observaciones is not None:
-                        new_obs += ' < '
+                        new_obs += ' - '
                         new_obs += i.observaciones
+
                     db.update_item(producto['id'], money, new_obs)
-                    obs = ' < ' + new_obs
-                    notel(chat_id, producto['price'], producto['title'], producto['description'], creationDate, producto['location']['city'], producto['web_slug'], obs)
+
+                    creationDate = datetime.fromtimestamp(producto['creation_date'] / 1000).strftime("%d/%m/%Y %H:%M:%S")
+                    notel(chat_id, producto['price'], producto['title'], producto['description'], creationDate, producto['location']['city'], producto['web_slug'], new_obs, producto['images'])
                     logging.info('Baja: id=%s, price=%s, title=%s', str(producto['id']), locale.currency(producto['price'], grouping=True), producto['title'])
 
             # Borrar fotos productos
