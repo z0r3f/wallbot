@@ -244,6 +244,28 @@ def enviarAviso(message):
                         logging.error(e)
 
 
+@bot.message_handler(commands=['usuariosbloqueados'])
+def enviarAviso(message):
+    parametros = str(message.text).split(' ', 1)
+    if len(parametros) < 2:
+        return
+    
+    token = ' '.join(parametros[1:]).split(',')
+    if len(token) < 1:
+        return
+    
+    password  = token[0].strip()
+
+    if password != PASSWORD_AVISO:
+        return
+    
+    try:
+        buscarUsuariosBloqueados() 
+        bot.send_message(CHAT_ID_ADMIN, "Busqueda de usuarios bloqueados finalizada", parse_mode='HTML')
+    except Exception as e:
+        logging.error(e)
+
+
 @bot.callback_query_handler(lambda call: call.data == "añadir")
 def process_callback_añadir(call):
     añadir(call)
@@ -523,10 +545,12 @@ def buscarUsuariosBloqueados():
             try:
                 message = bot.send_message(usuario, 'Hola, este es un mensaje de prueba', disable_notification=True)
                 bot.delete_message(usuario, message.message_id)
-                print("El mensaje ha sido enviado y borrado.")
+                print("El mensaje ha sido enviado y borrado: " + str(usuario))
             except ApiTelegramException as e:
                 if e.description == "Forbidden: bot was blocked by the user":
-                    logging.info("ATENCION! El usuario {} ha bloqueado el bot. No se le pueden enviar mensajes.".format(usuario))
+                    text = "ATENCION! El usuario {} ha bloqueado el bot. No se le pueden enviar mensajes.".format(usuario)
+                    logging.info(text)
+                    bot.send_message(CHAT_ID_ADMIN, text, parse_mode='HTML')
                     db.update_user(0, usuario)
             except Exception as e:
                 logging.error(e)
@@ -556,7 +580,6 @@ def wallapop():
             # Lanza las búsquedas y notificaciones ...
             get_items(u, search.chat_id)
 
-        #buscarUsuariosBloqueados()
         time.sleep(60)
         continue
 
