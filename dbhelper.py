@@ -74,7 +74,8 @@ class DBHelper:
                       "ord text default \'newest\', " \
                       "username text, " \
                       "name text, " \
-                      "active int default 1)"
+                      "active int default 1," \
+                      "user_active int default 1)"
         self.conn.execute(tblstmtchat)
 
         if version == '1.1.0':
