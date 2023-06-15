@@ -334,20 +334,37 @@ def guardarCategoria(call):
     cs.publish_date = fecha
     logging.info('%s', cs)
     db.add_search(cs)
-    bot.send_message(call.message.chat.id, "Busqueda guardada")
 
     try:
-        text = ICON_WARNING____ + " <b>Nuevo Registro</b> " + ICON_WARNING____
+        text = ICON_WARNING____ + " <b>Busqueda guardada</b> " + ICON_WARNING____
         text += "\n\n"
         text += "<b>Busqueda: </b>" + cs.kws + "\n"
-        text += "<b>Usuario: </b>" + cs.username + "\n"
-        text += "<b>Nombre: </b>" + cs.name + "\n"    
-        text += "<b>Precio minimo: </b>" + cs.min_price + "\n"
+        idCategoria = int(cs.cat_ids)
+        nombreCategoria = obtenerNombreCategoriaById(idCategoria)
+        text += "<b>Categoria: </b>" + nombreCategoria + "\n"
+        text += "<b>Precio Minimo: </b>" + cs.min_price + "\n"
         text += "<b>Precio Maximo: </b>" + cs.max_price + "\n"
 
-        bot.send_message(CHAT_ID_ADMIN, text, parse_mode="HTML")
+        bot.send_message(call.message.chat.id, text, parse_mode="HTML")
     except Exception as e:
         logging.error(e)
+
+    if call.message.chat.id != CHAT_ID_ADMIN:
+        try:
+            text = ICON_WARNING____ + " <b>Nuevo Registro</b> " + ICON_WARNING____
+            text += "\n\n"
+            text += "<b>Busqueda: </b>" + cs.kws + "\n"
+            text += "<b>Usuario: </b>" + cs.username + "\n"
+            text += "<b>Nombre: </b>" + cs.name + "\n"
+            idCategoria = int(cs.cat_ids)
+            nombreCategoria = obtenerNombreCategoriaById(idCategoria)
+            text += "<b>Categoria: </b>" + nombreCategoria + "\n"
+            text += "<b>Precio Minimo: </b>" + cs.min_price + "\n"
+            text += "<b>Precio Maximo: </b>" + cs.max_price + "\n"
+
+            bot.send_message(CHAT_ID_ADMIN, text, parse_mode="HTML")
+        except Exception as e:
+            logging.error(e)
 
 
 def borrar(call):
@@ -400,12 +417,9 @@ def listar(call):
 
             if busqueda.cat_ids is not None:
                 idCategoria = int(busqueda.cat_ids)
-
-                for categoria in json['categories']:
-                    if categoria['id'] == idCategoria:
-                        categoria = "<b>Categoria:</b> " + categoria['name']
-                        text += categoria
-                        break
+                nombreCategoria = obtenerNombreCategoriaById(idCategoria)
+                categoria = "<b>Categoria:</b> " + nombreCategoria
+                text += categoria
             else:
                 text += "<b>Categoria:</b> Todos"
 
@@ -456,6 +470,17 @@ def borrarFotos():
             os.remove(photo_path)
         except Exception as e:
             logging.error(e)
+
+
+def obtenerNombreCategoriaById(idCategoria):
+    try:
+        json = get_categories(URL_CATEGORIES)
+
+        for categoria in json['categories']:
+            if categoria['id'] == idCategoria:
+                return categoria['name']
+    except Exception as e:
+        logging.error(e)
 
 
 pathlog = 'wallbot.log'
