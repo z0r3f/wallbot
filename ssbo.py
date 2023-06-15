@@ -22,6 +22,7 @@ URL_ITEMS = "https://api.wallapop.com/api/v3/general/search"
 URL_CATEGORIES = "https://api.wallapop.com/api/v3/categories"
 PROFILE = os.getenv("PROFILE")
 PASSWORD_AVISO = os.getenv("PASSWORD_AVISO")
+CHAT_ID_ADMIN = os.getenv("CHAT_ID_ADMIN")
 
 if PROFILE is None:
     db = DBHelper()
@@ -334,6 +335,19 @@ def guardarCategoria(call):
     logging.info('%s', cs)
     db.add_search(cs)
     bot.send_message(call.message.chat.id, "Busqueda guardada")
+
+    try:
+        text = ICON_WARNING____ + " <b>Nuevo Registro</b> " + ICON_WARNING____
+        text += "\n\n"
+        text += "<b>Busqueda: </b>" + cs.kws + "\n"
+        text += "<b>Usuario: </b>" + cs.username + "\n"
+        text += "<b>Nombre: </b>" + cs.name + "\n"    
+        text += "<b>Precio minimo: </b>" + cs.min_price + "\n"
+        text += "<b>Precio Maximo: </b>" + cs.max_price + "\n"
+
+        bot.send_message(CHAT_ID_ADMIN, text, parse_mode="HTML")
+    except Exception as e:
+        logging.error(e)
 
 
 def borrar(call):
