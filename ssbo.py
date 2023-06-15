@@ -14,6 +14,7 @@ from logging.handlers import RotatingFileHandler
 from telebot import TeleBot
 from telebot import types
 from telebot.types import InputMediaPhoto, InputMediaVideo, InlineKeyboardMarkup, InlineKeyboardButton
+from telebot.apihelper import ApiTelegramException
 from datetime import datetime
 from urllib.parse import urlparse
 
@@ -236,6 +237,9 @@ def enviarAviso(message):
                         bot.send_message(usuario, aviso, parse_mode='HTML')
                         text = "Aviso enviado a: " + str(usuario)
                         bot.send_message(CHAT_ID_ADMIN, text, parse_mode='HTML')
+                    except ApiTelegramException as e:
+                        if e.description == "Forbidden: bot was blocked by the user":
+                            logging.info("ATENCION! El usuario {} ha bloqueado el bot. No se le pueden enviar mensajes.".format(message.chat.id))
                     except Exception as e:
                         logging.error(e)
 
