@@ -299,16 +299,32 @@ def guardarRangoPrecio(message):
     cs.active = 1
 
     data = get_categories(URL_CATEGORIES)
-    keyboard = types.InlineKeyboardMarkup()
+
+    # Crear las filas de botones
+    filas = []
+    fila_actual = []
+    for categoria in data['categories']:
+        boton = telebot.types.InlineKeyboardButton(str(categoria['name']), callback_data='categoria,' + str(categoria['id']))
+        fila_actual.append(boton)
+        if len(fila_actual) == 3:
+            filas.append(fila_actual)
+            fila_actual = []
+
+    # Comprobar si hay una fila parcial al final
+    if fila_actual:
+        filas.append(fila_actual)
+
+    # Crear el teclado con las filas
+    teclado = telebot.types.InlineKeyboardMarkup()
 
     boton = types.InlineKeyboardButton("Todos" , callback_data='categoria,' + "all")
-    keyboard.add(boton)
+    teclado.add(boton)
 
-    for categoria in data['categories']:
-        boton = types.InlineKeyboardButton(str(categoria['name']), callback_data='categoria,' + str(categoria['id']))
-        keyboard.add(boton)
+    for fila in filas:
+        teclado.row(*fila)
 
-    bot.send_message(message.chat.id, text='Selecciona una categoria', reply_markup=keyboard)
+    # Enviar el teclado al usuario
+    bot.send_message(message.chat.id, text='Selecciona una categoria', reply_markup=teclado)
 
 
 @bot.callback_query_handler(func=lambda call: True)
