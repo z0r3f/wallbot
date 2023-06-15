@@ -77,10 +77,8 @@ class DBHelper:
                       "active int default 1)"
         self.conn.execute(tblstmtchat)
 
-        if version == '1.0.6':
-            stmt = "update chat_search " \
-                   "set ord = \'newest\' " \
-                   "where ord = \'creationDate-des\'"
+        if version == '1.1.0':
+            stmt = "ALTER TABLE chat_search ADD COLUMN user_active INT DEFAULT 1"
             try:
                 self.conn.execute(stmt)
                 self.conn.commit()
@@ -129,6 +127,11 @@ class DBHelper:
             stmt += ", active"
             valu += ", ?"
             args += (chat_search.active, )
+        
+        stmt += ", user_active"
+        valu += ", ?"
+        args += (1, )
+
         stmt += ")" + valu + ")"
         try:
             self.conn.execute(stmt, args)
@@ -227,8 +230,8 @@ class DBHelper:
 
     def get_estadisticas(self):
         stmt = "SELECT " \
-                "(SELECT COUNT(DISTINCT chat_id) FROM chat_search) AS total_usuarios," \
-                "(SELECT COUNT(chat_id) FROM chat_search WHERE active = 1) AS busquedas_activas," \
+                "(SELECT COUNT(DISTINCT chat_id) FROM chat_search WHERE user_active = 1) AS total_usuarios," \
+                "(SELECT COUNT(chat_id) FROM chat_search WHERE active = 1 and user_active = 1) AS busquedas_activas," \
                 "(SELECT COUNT(DISTINCT itemId) FROM item) AS productos_encontrados"
         lista = []
         try:
@@ -240,7 +243,7 @@ class DBHelper:
         return lista
     
     def get_usuarios(self):
-        stmt = "SELECT DISTINCT chat_id FROM chat_search "
+        stmt = "SELECT DISTINCT chat_id FROM chat_search WHERE user_active = 1 "
         lista = []
         try:
             for row in self.conn.execute(stmt):
@@ -248,3 +251,13 @@ class DBHelper:
         except Exception as e:
             print(e)
         return lista
+    
+    def update_user(self, active, chat_id):
+        stmt = "update chat_search " \
+                  "set user_active = ? " \
+                  "where chat_id = ?"
+        try:
+            self.conn.execute(stmt, (active, chat_id))
+            self.conn.commit()
+        except Exception as e:
+            print(e)

@@ -13,8 +13,8 @@ from decimal import Decimal
 from logging.handlers import RotatingFileHandler
 from telebot import TeleBot
 from telebot import types
-from telebot.types import InputMediaPhoto, InputMediaVideo, InlineKeyboardMarkup, InlineKeyboardButton
-from telebot.apihelper import ApiTelegramException
+from telebot.types import InputMediaPhoto, InputMediaVideo, InlineKeyboardMarkup, InlineKeyboardButton, ChatMember
+from telebot.apihelper import ApiTelegramException, ApiException
 from datetime import datetime
 from urllib.parse import urlparse
 
@@ -265,6 +265,8 @@ def process_callback_estadisticas(call):
 
 
 def inicio(call):
+    db.update_user(1, call.chat.id)
+
     boton_añadir = types.InlineKeyboardButton('Añadir', callback_data='añadir')
     boton_listar = types.InlineKeyboardButton('Listar', callback_data='listar')
     boton_borrar = types.InlineKeyboardButton('Borrar', callback_data='borrar')
@@ -482,6 +484,8 @@ def estadisticas(call):
 
 
 def ayuda(message):
+    db.update_user(1, message.chat.id)
+
     text = "Usa este bot para crear busquedas en Wallapop, y obtener avisos instantaneos de la subida de nuevos productos."
     text += "\n\n"
     text += "Bot creado por @Tamasco69"
@@ -511,6 +515,23 @@ def obtenerNombreCategoriaById(idCategoria, json):
         logging.error(e)
 
 
+def buscarUsuariosBloqueados():
+    usuarios = db.get_usuarios()
+
+    if len(usuarios) > 0:
+        for usuario in usuarios:
+            try:
+                message = bot.send_message(usuario, 'Hola, este es un mensaje de prueba', disable_notification=True)
+                bot.delete_message(usuario, message.message_id)
+                print("El mensaje ha sido enviado y borrado.")
+            except ApiTelegramException as e:
+                if e.description == "Forbidden: bot was blocked by the user":
+                    logging.info("ATENCION! El usuario {} ha bloqueado el bot. No se le pueden enviar mensajes.".format(usuario))
+                    db.update_user(0, usuario)
+            except Exception as e:
+                logging.error(e)
+
+
 pathlog = 'wallbot.log'
 if PROFILE is None:
     pathlog = '/logs/' + pathlog
@@ -535,6 +556,7 @@ def wallapop():
             # Lanza las búsquedas y notificaciones ...
             get_items(u, search.chat_id)
 
+        #buscarUsuariosBloqueados()
         time.sleep(60)
         continue
 
