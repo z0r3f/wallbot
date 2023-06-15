@@ -582,10 +582,9 @@ def wallapop():
     while True:
         # Recupera de db las búsquedas que hay que hacer en wallapop con sus respectivos chats_id
         for search in db.get_chats_searchs():
-            u = get_url_list(search)
-
-            # Lanza las búsquedas y notificaciones ...
-            get_items(u, search.chat_id)
+            url = get_url_list(search)
+            # Lanza las búsquedas y notificaciones
+            get_items(url, search.chat_id)
 
         time.sleep(60)
         continue
