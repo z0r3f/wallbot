@@ -554,7 +554,7 @@ def buscarUsuariosBloqueados():
                 logging.info("El mensaje ha sido enviado y borrado: " + str(usuario))
             except ApiTelegramException as e:
                 logging.error(e)
-                if e.description == "Forbidden: bot was blocked by the user":
+                if e.description == "Forbidden: bot was blocked by the user" or e.description == "Bad Request: chat not found":
                     text = "ATENCION! El usuario {} ha bloqueado el bot. No se le pueden enviar mensajes.".format(usuario)
                     logging.info(text)
                     bot.send_message(CHAT_ID_ADMIN, text, parse_mode='HTML')
