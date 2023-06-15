@@ -357,13 +357,15 @@ def guardarCategoria(call):
     logging.info('%s', cs)
     db.add_search(cs)
 
+    json = get_categories(URL_CATEGORIES)
+
     try:
         text = ICON_WARNING____ + " <b>Busqueda guardada</b> " + ICON_WARNING____
         text += "\n\n"
         text += "<b>Busqueda: </b>" + cs.kws + "\n"
         if cs.cat_ids != None:
             idCategoria = int(cs.cat_ids)
-            nombreCategoria = obtenerNombreCategoriaById(idCategoria)
+            nombreCategoria = obtenerNombreCategoriaById(idCategoria, json)
             text += "<b>Categoria: </b>" + nombreCategoria + "\n"
         else:
             text += "<b>Categoria: </b> Todos\n"
@@ -383,7 +385,7 @@ def guardarCategoria(call):
             text += "<b>Nombre: </b>" + cs.name + "\n"
             if cs.cat_ids != None:
                 idCategoria = int(cs.cat_ids)
-                nombreCategoria = obtenerNombreCategoriaById(idCategoria)
+                nombreCategoria = obtenerNombreCategoriaById(idCategoria, json)
                 text += "<b>Categoria: </b>" + nombreCategoria + "\n"
             else:
                 text += "<b>Categoria: </b> Todos\n"
@@ -445,7 +447,7 @@ def listar(call):
 
             if busqueda.cat_ids is not None:
                 idCategoria = int(busqueda.cat_ids)
-                nombreCategoria = obtenerNombreCategoriaById(idCategoria)
+                nombreCategoria = obtenerNombreCategoriaById(idCategoria, json)
                 categoria = "<b>Categoria:</b> " + nombreCategoria
                 text += categoria
             else:
@@ -500,10 +502,8 @@ def borrarFotos():
             logging.error(e)
 
 
-def obtenerNombreCategoriaById(idCategoria):
+def obtenerNombreCategoriaById(idCategoria, json):
     try:
-        json = get_categories(URL_CATEGORIES)
-
         for categoria in json['categories']:
             if categoria['id'] == idCategoria:
                 return categoria['name']
