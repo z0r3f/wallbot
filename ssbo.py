@@ -424,7 +424,7 @@ def guardarCategoria(call):
             text = ICON_WARNING____ + " <b>Nuevo Registro</b> " + ICON_WARNING____
             text += "\n\n"
             text += "<b>Busqueda: </b>" + cs.kws + "\n"
-            text += "<b>Usuario: </b>" + cs.username + "\n"
+            text += "<b>Usuario: </b> @" + cs.username + "\n"
             text += "<b>Nombre: </b>" + cs.name + "\n"
             if cs.cat_ids != None:
                 idCategoria = int(cs.cat_ids)
