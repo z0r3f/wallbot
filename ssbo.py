@@ -518,7 +518,16 @@ def estadisticas(call):
         text += ICON_MAGNIFYING + " <b>Busquedas Activas:</b> " + str(estadisticas[0].busquedas_activas)
         text += '\n'
 
-        text += ICON_MONEY + " <b>Productos Encontrados:</b> " + str(estadisticas[0].productos_encontrados)
+        text += ICON_MONEY + " <b>Productos Encontrados Hoy:</b> " + str(estadisticas[0].productos_encontrados_dia)
+        text += '\n'
+
+        text += ICON_MONEY + " <b>Productos Encontrados Semana:</b> " + str(estadisticas[0].productos_encontrados_semana)
+        text += '\n'
+
+        text += ICON_MONEY + " <b>Productos Encontrados Mes:</b> " + str(estadisticas[0].productos_encontrados_mes)
+        text += '\n'
+
+        text += ICON_MONEY + " <b>Productos Encontrados Total:</b> " + str(estadisticas[0].productos_encontrados_total)
         text += '\n'
         
         bot.send_message(call.message.chat.id, text, parse_mode='HTML')

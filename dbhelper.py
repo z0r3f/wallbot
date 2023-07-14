@@ -39,10 +39,13 @@ class Item:
 
 
 class Estadisticas:
-    def __init__(self, total_usuarios, busquedas_activas, productos_encontrados):
+    def __init__(self, total_usuarios, busquedas_activas, productos_encontrados_dia, productos_encontrados_semana, productos_encontrados_mes, productos_encontrados_total):
         self.total_usuarios = total_usuarios
         self.busquedas_activas = busquedas_activas
-        self.productos_encontrados = productos_encontrados
+        self.productos_encontrados_dia = productos_encontrados_dia
+        self.productos_encontrados_semana = productos_encontrados_semana
+        self.productos_encontrados_mes = productos_encontrados_mes
+        self.productos_encontrados_total = productos_encontrados_total
 
 
 class DBHelper:
@@ -246,11 +249,14 @@ class DBHelper:
         stmt = "SELECT " \
                 "(SELECT COUNT(DISTINCT chat_id) FROM chat_search WHERE user_active = 1) AS total_usuarios," \
                 "(SELECT COUNT(chat_id) FROM chat_search WHERE active = 1 and user_active = 1) AS busquedas_activas," \
-                "(SELECT COUNT(DISTINCT itemId) FROM item) AS productos_encontrados"
+                "(SELECT COUNT(DISTINCT itemId) FROM item WHERE date(publishDate) = date('now')) AS productos_encontrados_dia," \
+                "(SELECT COUNT(DISTINCT itemId) FROM item WHERE date(publishDate) BETWEEN date('now', '-7 days') AND date('now')) AS productos_encontrados_semana," \
+                "(SELECT COUNT(DISTINCT itemId) FROM item WHERE date(publishDate) BETWEEN date('now', '-1 month') AND date('now')) AS productos_encontrados_mes," \
+                "(SELECT COUNT(DISTINCT itemId) FROM item) AS productos_encontrados_total"
         lista = []
         try:
             for row in self.conn.execute(stmt):
-                c = Estadisticas(row[0], row[1], row[2])
+                c = Estadisticas(row[0], row[1], row[2], row[3], row[4], row[5])
                 lista.append(c)
         except Exception as e:
             print(e)
