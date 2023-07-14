@@ -139,7 +139,7 @@ def get_items(url, chat_id):
             logging.info('Encontrado: id=%s, price=%s, title=%s, user=%s',str(producto['id']), locale.currency(producto['price'], grouping=True), producto['title'], producto['user']['id'])
             i = db.search_item(producto['id'], chat_id)
             if i is None:
-                creationDate = datetime.fromtimestamp(producto['creation_date'] / 1000).strftime("%d/%m/%Y %H:%M:%S")
+                creationDate = datetime.fromtimestamp(producto['creation_date'] / 1000).strftime("%Y-%m-%d %H:%M:%S")
                 db.add_item(producto['id'], chat_id, producto['title'], producto['price'], producto['web_slug'], producto['user']['id'], creationDate)
                 notel(chat_id, producto, None)
                 logging.info('New: id=%s, price=%s, title=%s', str(producto['id']), locale.currency(producto['price'], grouping=True), producto['title'])
@@ -156,7 +156,7 @@ def get_items(url, chat_id):
 
                     db.update_item(producto['id'], money, new_obs)
 
-                    creationDate = datetime.fromtimestamp(producto['creation_date'] / 1000).strftime("%d/%m/%Y %H:%M:%S")
+                    creationDate = datetime.fromtimestamp(producto['creation_date'] / 1000).strftime("%Y-%m-%d %H:%M:%S")
                     notel(chat_id, producto, new_obs)
                     logging.info('Baja: id=%s, price=%s, title=%s', str(producto['id']), locale.currency(producto['price'], grouping=True), producto['title'])
 
@@ -395,7 +395,7 @@ def guardarCategoria(call):
     else:
         cs.cat_ids = call.message.text
 
-    fecha = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    fecha = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     cs.publish_date = fecha
     logging.info('%s', cs)
     db.add_search(cs)
