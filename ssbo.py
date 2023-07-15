@@ -43,6 +43,7 @@ ICON_MAGNIFYING  = u'\U0001F50E'  # 🔎
 ICON_USER        = u'\U0001F464'  # 👤
 ICON_MONEY       = u'\U0001F4B8'  # 💸
 
+global tecladoCategorias
 
 def notel(chat_id, producto, obs):
     try:
@@ -373,7 +374,8 @@ def guardarRangoPrecio(message):
         teclado.row(*fila)
 
     # Enviar el teclado al usuario
-    bot.send_message(message.chat.id, text='Selecciona una categoria', reply_markup=teclado)
+    global tecladoCategorias
+    tecladoCategorias = bot.send_message(message.chat.id, text='Selecciona una categoria', reply_markup=teclado)
 
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -399,6 +401,9 @@ def guardarCategoria(call):
     cs.publish_date = fecha
     logging.info('%s', cs)
     db.add_search(cs)
+
+    global tecladoCategorias
+    bot.delete_message(call.message.chat.id, tecladoCategorias.message_id)
 
     json = get_categories(URL_CATEGORIES)
 
