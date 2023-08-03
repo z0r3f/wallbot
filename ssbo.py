@@ -46,23 +46,6 @@ ICON_MONEY       = u'\U0001F4B8'  # 💸
 global tecladoCategorias
 
 def notel(chat_id, producto, obs):
-    try:
-        images = producto['images']
-        archivo = urlparse(images[0]['original'])
-        nombreArchivo = os.path.basename(archivo.path)
-        rutaArchivo = "/data/media/" + nombreArchivo
-
-        response = requests.get(images[0]['original'])
-        open(rutaArchivo, "wb").write(response.content)
-
-        with open(rutaArchivo, 'rb') as fh:
-            image = fh.read()
-
-        bot.send_photo(chat_id, image, disable_notification=True)
-
-    except Exception as e:
-        logging.error(e)
-
     text = ""
 
     if obs is not None:
@@ -106,7 +89,8 @@ def notel(chat_id, producto, obs):
     text += '\n'
     urlAnuncio = 'https://es.wallapop.com/item/' + producto['web_slug']
 
-    bot.send_message(chat_id, text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text='Ir al anuncio', url=urlAnuncio)]]))
+    image_url = producto['images'][0]['original']
+    bot.send_photo(chat_id, image_url, caption=text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text='Ir al anuncio', url=urlAnuncio)]]), disable_notification=True)
 
 
 def get_url_list(search):
@@ -160,9 +144,6 @@ def get_items(url, chat_id):
                     creationDate = datetime.fromtimestamp(producto['creation_date'] / 1000).strftime("%Y-%m-%d %H:%M:%S")
                     notel(chat_id, producto, new_obs)
                     logging.info('Baja: id=%s, price=%s, title=%s', str(producto['id']), locale.currency(producto['price'], grouping=True), producto['title'])
-
-            # Borrar fotos productos
-            borrarFotos()
 
     except Exception as e:
         logging.error(e)
@@ -545,20 +526,6 @@ def ayuda(message):
     text += "\n\n"
     text += "Bot creado por @Tamasco69"
     bot.send_message(message.chat.id, text, parse_mode='HTML')
-
-
-def borrarFotos():
-    folder_path = '/data/media'
-    photo_extensions = ['.jpg', '.jpeg', '.png', '.gif']  # Extensiones de archivo de las fotos
-    file_list = os.listdir(folder_path)
-    photo_list = [file for file in file_list if os.path.splitext(file)[1].lower() in photo_extensions]
-
-    for photo in photo_list:
-        try:
-            photo_path = os.path.join(folder_path, photo)
-            os.remove(photo_path)
-        except Exception as e:
-            logging.error(e)
 
 
 def obtenerNombreCategoriaById(idCategoria, json):
