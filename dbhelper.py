@@ -5,7 +5,7 @@ import time
 class ChatSearch:
 
     def __init__(self, chat_id=None, kws=None, cat_ids=None, min_price=None, max_price=None,
-                 dist=None, publish_date=None, orde=None, username=None, name=None, active=None, user_active=None):
+                 dist=None, publish_date=None, orde=None, username=None, name=None, active=None, user_active=None, exclude_words=None):
         self.chat_id = chat_id
         self.kws = kws
         self.cat_ids = cat_ids
@@ -18,12 +18,13 @@ class ChatSearch:
         self.name = name
         self.active = active
         self.user_active = user_active
+        self.exclude_words = exclude_words
 
     def __str__(self) -> str:
         return "<ChatSearch chat_id:%s kws:%s cat_ids:%s min_price:%s max_price:%s " \
-               "dist:%s publish_date:%s orde:%s username:%s name:%s active:%s>" % \
+               "dist:%s publish_date:%s orde:%s username:%s name:%s active:%s user_active:%s exclude_words:%s>" % \
                (self.chat_id, self.kws, self.cat_ids, self.min_price, self.max_price,
-                self.dist, self.publish_date, self.orde, self.username, self.name, self.active)
+                self.dist, self.publish_date, self.orde, self.username, self.name, self.active, self.user_active, self.exclude_words)
 
 
 class Item:
@@ -79,18 +80,19 @@ class DBHelper:
                       "username text, " \
                       "name text, " \
                       "active int default 1," \
-                      "user_active int default 1)"
+                      "user_active int default 1," \
+                      "exclude_words text)"
         self.conn.execute(tblstmtchat)
+        self.conn.commit()
 
-        if version == '1.1.0':
-            stmt = "ALTER TABLE chat_search ADD COLUMN user_active INT DEFAULT 1"
+        if version == '1.1.2':
+            stmt = "ALTER TABLE chat_search ADD COLUMN exclude_words text"
             try:
                 self.conn.execute(stmt)
                 self.conn.commit()
             except Exception as e:
                 print(e)
 
-        self.conn.commit()
 
     def add_search(self, chat_search):
         stmt = "insert into chat_search (chat_id, kws"
@@ -132,6 +134,10 @@ class DBHelper:
             stmt += ", active"
             valu += ", ?"
             args += (chat_search.active, )
+        if chat_search.exclude_words is not None:
+            stmt += ", exclude_words"
+            valu += ", ?"
+            args += (chat_search.exclude_words, )
         
         stmt += ", user_active"
         valu += ", ?"
@@ -190,48 +196,48 @@ class DBHelper:
         return None
     
     def search_chat_search_by_title(self, title, chat_id):
-        stmt = "select chat_id, kws, cat_ids, min_price, max_price, dist, publish_date, ord, username, name, active " \
+        stmt = "select chat_id, kws, cat_ids, min_price, max_price, dist, publish_date, ord, username, name, active, user_active, exclude_words " \
                  "from chat_search where kws = (?) and chat_id = (?) and active = 1"
         args = (title, chat_id)
         try:
             for row in self.conn.execute(stmt, args):
-                i = ChatSearch(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10])
+                i = ChatSearch(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12])
                 return i
         except Exception as e:
             print(e)
         return None
     
     def search_chat_search_by_title_cat_ids(self, title, cat_ids, chat_id):
-        stmt = "select chat_id, kws, cat_ids, min_price, max_price, dist, publish_date, ord, username, name, active " \
+        stmt = "select chat_id, kws, cat_ids, min_price, max_price, dist, publish_date, ord, username, name, active, user_active, exclude_words " \
                  "from chat_search where kws = (?) and cat_ids = (?) and chat_id = (?) and active = 1"
         args = (title, cat_ids, chat_id)
         try:
             for row in self.conn.execute(stmt, args):
-                i = ChatSearch(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10])
+                i = ChatSearch(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12])
                 return i
         except Exception as e:
             print(e)
         return None
 
     def get_chat_searchs(self, chat_id):
-        stmt = "select chat_id, kws, cat_ids, min_price, max_price, dist, publish_date, ord from chat_search " \
+        stmt = "select chat_id, kws, cat_ids, min_price, max_price, dist, publish_date, ord, username, name, active, user_active, exclude_words from chat_search " \
                 "where chat_id = ? and active = 1"
         lista = []
         try:
             for row in self.conn.execute(stmt, (chat_id, )):
-                c = ChatSearch(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7])
+                c = ChatSearch(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12])
                 lista.append(c)
         except Exception as e:
             print(e)
         return lista
 
     def get_chats_searchs(self):
-        stmt = "select chat_id, kws, cat_ids, min_price, max_price, dist, publish_date, ord, username, name, active, user_active from chat_search " \
+        stmt = "select chat_id, kws, cat_ids, min_price, max_price, dist, publish_date, ord, username, name, active, user_active, exclude_words from chat_search " \
                 "where active = 1 and user_active = 1"
         lista = []
         try:
             for row in self.conn.execute(stmt):
-                c = ChatSearch(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11])
+                c = ChatSearch(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12])
                 lista.append(c)
         except Exception as e:
             print(e)

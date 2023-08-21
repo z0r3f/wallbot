@@ -116,34 +116,50 @@ def get_url_list(search):
     return url
 
 
-def get_items(url, chat_id):
+def get_items(url, chat_id, exclude_words):
     try:
         resp = requests.get(url=url)
         data = resp.json()
         for producto in data['search_objects']:
-            logging.info('Encontrado: id=%s, price=%s, title=%s, user=%s',str(producto['id']), locale.currency(producto['price'], grouping=True), producto['title'], producto['user']['id'])
-            i = db.search_item(producto['id'], chat_id)
-            if i is None:
-                creationDate = datetime.fromtimestamp(producto['creation_date'] / 1000).strftime("%Y-%m-%d %H:%M:%S")
-                db.add_item(producto['id'], chat_id, producto['title'], producto['price'], producto['web_slug'], producto['user']['id'], creationDate)
-                notel(chat_id, producto, None)
-                logging.info('New: id=%s, price=%s, title=%s', str(producto['id']), locale.currency(producto['price'], grouping=True), producto['title'])
-            else:
-                # Si está comparar precio...
-                money = str(producto['price'])
-                value_json = Decimal(sub(r'[^\d.]', '', money))
-                value_db = Decimal(sub(r'[^\d.]', '', i.price))
-                if value_json < value_db:
-                    new_obs = locale.currency(float(i.price), grouping=True)
-                    if i.observaciones is not None:
-                        new_obs += ' - '
-                        new_obs += i.observaciones
+            exclusion = False
 
-                    db.update_item(producto['id'], money, new_obs)
+            if exclude_words is not None:
+                listaExcludeWords = exclude_words.split(',')
 
+                acentos = "áéíóúÁÉÍÓÚ"
+                sin_acentos = "aeiouAEIOU"
+                translator = str.maketrans(acentos, sin_acentos)
+                texto_sin_acentos = producto['title'].lower().translate(translator)
+
+                for palabra in listaExcludeWords:
+                    if palabra.strip().lower() in texto_sin_acentos:
+                        exclusion = True
+                        break
+
+            if exclusion == False:
+                logging.info('Encontrado: id=%s, price=%s, title=%s, user=%s',str(producto['id']), locale.currency(producto['price'], grouping=True), producto['title'], producto['user']['id'])
+                i = db.search_item(producto['id'], chat_id)
+                if i is None:
                     creationDate = datetime.fromtimestamp(producto['creation_date'] / 1000).strftime("%Y-%m-%d %H:%M:%S")
-                    notel(chat_id, producto, new_obs)
-                    logging.info('Baja: id=%s, price=%s, title=%s', str(producto['id']), locale.currency(producto['price'], grouping=True), producto['title'])
+                    db.add_item(producto['id'], chat_id, producto['title'], producto['price'], producto['web_slug'], producto['user']['id'], creationDate)
+                    notel(chat_id, producto, None)
+                    logging.info('New: id=%s, price=%s, title=%s', str(producto['id']), locale.currency(producto['price'], grouping=True), producto['title'])
+                else:
+                    # Si está comparar precio...
+                    money = str(producto['price'])
+                    value_json = Decimal(sub(r'[^\d.]', '', money))
+                    value_db = Decimal(sub(r'[^\d.]', '', i.price))
+                    if value_json < value_db:
+                        new_obs = locale.currency(float(i.price), grouping=True)
+                        if i.observaciones is not None:
+                            new_obs += ' - '
+                            new_obs += i.observaciones
+
+                        db.update_item(producto['id'], money, new_obs)
+
+                        creationDate = datetime.fromtimestamp(producto['creation_date'] / 1000).strftime("%Y-%m-%d %H:%M:%S")
+                        notel(chat_id, producto, new_obs)
+                        logging.info('Baja: id=%s, price=%s, title=%s', str(producto['id']), locale.currency(producto['price'], grouping=True), producto['title'])
 
     except Exception as e:
         logging.error(e)
@@ -378,13 +394,21 @@ def guardarCategoria(call):
     else:
         cs.cat_ids = call.message.text
 
+    exclude_words = bot.send_message(call.message.chat.id,  'Si lo deseas, introduce las palabras que quieras excluir separadas por coma. De lo contrario escribe "Nada":')
+    bot.register_next_step_handler(exclude_words, guardarExcludeWords)
+
+
+def guardarExcludeWords(message):
+    if message.text.lower() != "nada":
+        cs.exclude_words = message.text
+
     fecha = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     cs.publish_date = fecha
     logging.info('%s', cs)
     db.add_search(cs)
 
     global tecladoCategorias
-    bot.delete_message(call.message.chat.id, tecladoCategorias.message_id)
+    bot.delete_message(message.chat.id, tecladoCategorias.message_id)
 
     json = get_categories(URL_CATEGORIES)
 
@@ -401,11 +425,11 @@ def guardarCategoria(call):
         text += "<b>Precio Minimo: </b>" + cs.min_price + "\n"
         text += "<b>Precio Maximo: </b>" + cs.max_price + "\n"
 
-        bot.send_message(call.message.chat.id, text, parse_mode="HTML")
+        bot.send_message(message.chat.id, text, parse_mode="HTML")
     except Exception as e:
         logging.error(e)
 
-    if call.message.chat.id != CHAT_ID_ADMIN:
+    if message.chat.id != CHAT_ID_ADMIN:
         try:
             text = ICON_WARNING____ + " <b>Nuevo Registro</b> " + ICON_WARNING____
             text += "\n\n"
@@ -481,6 +505,13 @@ def listar(call):
                 text += categoria
             else:
                 text += "<b>Categoria:</b> Todos"
+
+            text += '\n'
+
+            if busqueda.exclude_words is not None:
+                text += "<b>Palabras excluidas:</b> " + busqueda.exclude_words
+            else:
+                text += "<b>Palabras excluidas:</b>"
 
             text += '\n'
             text += '------------------------------------------------------'
@@ -579,7 +610,7 @@ def wallapop():
         for search in db.get_chats_searchs():
             url = get_url_list(search)
             # Lanza las búsquedas y notificaciones
-            get_items(url, search.chat_id)
+            get_items(url, search.chat_id, search.exclude_words)
 
         time.sleep(60)
         continue
