@@ -606,8 +606,8 @@ def recovery(times):
 
 
 def main():
-    print("JanJanJan starting...")
-    logging.info("JanJanJan starting...")
+    print("Wallbot starting...")
+    logging.info("Wallbot starting...")
     db.setup(readVersion())
     threading.Thread(target=wallapop).start()
     recovery(1)
