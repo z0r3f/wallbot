@@ -303,20 +303,26 @@ def inicio(call):
 
 
 def añadir(call):
-    busqueda = bot.send_message(call.message.chat.id,  'Introduce la busqueda:')
+    busqueda = bot.send_message(call.message.chat.id, 'Introduce la busqueda:')
     bot.register_next_step_handler(busqueda, guardarBusqueda)
 
 
 def guardarBusqueda(message):
-    busqueda = db.search_chat_search_by_title(message.text, message.chat.id)
+    if message.text.startswith("/"):
+        bot.send_message(message.chat.id, 'La busqueda no puede ser un comando')
 
-    if busqueda is not None:
-        bot.send_message(message.chat.id,  'Esa busqueda ya ha sido registrada')
+        busqueda = bot.send_message(message.chat.id, 'Introduce la busqueda:')
+        bot.register_next_step_handler(busqueda, guardarBusqueda)
     else:
-        cs.chat_id = message.chat.id
-        cs.kws = message.text
-        rangoPrecio = bot.send_message(message.chat.id,  'Introduce el rango de precio (min-max):')
-        bot.register_next_step_handler(rangoPrecio, guardarRangoPrecio)
+        busqueda = db.search_chat_search_by_title(message.text, message.chat.id)
+
+        if busqueda is not None:
+            bot.send_message(message.chat.id, 'Esa busqueda ya ha sido registrada')
+        else:
+            cs.chat_id = message.chat.id
+            cs.kws = message.text
+            rangoPrecio = bot.send_message(message.chat.id,  'Introduce el rango de precio (min-max):')
+            bot.register_next_step_handler(rangoPrecio, guardarRangoPrecio)
 
 
 def guardarRangoPrecio(message):
