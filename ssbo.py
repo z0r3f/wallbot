@@ -137,7 +137,7 @@ def get_items(url, chat_id, exclude_words):
                         break
 
             if exclusion == False:
-                logging.info('Encontrado: id=%s, price=%s, title=%s, user=%s',str(producto['id']), locale.currency(producto['price'], grouping=True), producto['title'], producto['user']['id'])
+                logging.info('Encontrado: id=%s, price=%s, title=%s, user=%s', str(producto['id']), locale.currency(producto['price'], grouping=True), producto['title'], producto['user']['id'])
                 i = db.search_item(producto['id'], chat_id)
                 if i is None:
                     creationDate = datetime.fromtimestamp(producto['creation_date'] / 1000).strftime("%Y-%m-%d %H:%M:%S")
@@ -160,6 +160,8 @@ def get_items(url, chat_id, exclude_words):
                         creationDate = datetime.fromtimestamp(producto['creation_date'] / 1000).strftime("%Y-%m-%d %H:%M:%S")
                         notel(chat_id, producto, new_obs)
                         logging.info('Baja: id=%s, price=%s, title=%s', str(producto['id']), locale.currency(producto['price'], grouping=True), producto['title'])
+            else:
+                logging.info('Excluido: id=%s, price=%s, title=%s, user=%s', str(producto['id']), locale.currency(producto['price'], grouping=True), producto['title'], producto['user']['id'])
 
     except Exception as e:
         logging.error(e)
@@ -400,7 +402,7 @@ def guardarCategoria(call):
     else:
         cs.cat_ids = call.message.text
 
-    exclude_words = bot.send_message(call.message.chat.id,  'Si lo deseas, introduce las palabras que quieras excluir separadas por coma. De lo contrario escribe "Nada":')
+    exclude_words = bot.send_message(call.message.chat.id,  'Si lo deseas, introduce las palabras que quieras excluir de tu busqueda separadas por coma. De lo contrario escribe "Nada":')
     bot.register_next_step_handler(exclude_words, guardarExcludeWords)
 
 
@@ -430,6 +432,10 @@ def guardarExcludeWords(message):
             text += "<b>Categoria: </b> Todos\n"
         text += "<b>Precio Minimo: </b>" + cs.min_price + "\n"
         text += "<b>Precio Maximo: </b>" + cs.max_price + "\n"
+        if cs.exclude_words is not None:
+            text += "<b>Palabras excluidas:</b> " + cs.exclude_words
+        else:
+            text += "<b>Palabras excluidas:</b>"
 
         bot.send_message(message.chat.id, text, parse_mode="HTML")
     except Exception as e:
@@ -450,6 +456,10 @@ def guardarExcludeWords(message):
                 text += "<b>Categoria: </b> Todos\n"
             text += "<b>Precio Minimo: </b>" + cs.min_price + "\n"
             text += "<b>Precio Maximo: </b>" + cs.max_price + "\n"
+            if cs.exclude_words is not None:
+                text += "<b>Palabras excluidas:</b> " + cs.exclude_words
+            else:
+                text += "<b>Palabras excluidas:</b>"
 
             bot.send_message(CHAT_ID_ADMIN, text, parse_mode="HTML")
         except Exception as e:
