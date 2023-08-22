@@ -261,6 +261,7 @@ def enviarAviso(message):
                             logging.info("ATENCION! El usuario {} ha bloqueado el bot. No se le pueden enviar mensajes.".format(message.chat.id))
                     except Exception as e:
                         logging.error(e)
+                bot.send_message(CHAT_ID_ADMIN, "Todos los avisos enviados", parse_mode='HTML')
 
 
 @bot.message_handler(commands=['usuariosbloqueados'])
