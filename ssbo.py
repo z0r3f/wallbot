@@ -410,6 +410,8 @@ def guardarCategoria(call):
 def guardarExcludeWords(message):
     if message.text.lower() != "nada":
         cs.exclude_words = message.text
+    else:
+        cs.exclude_words = None
 
     fecha = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     cs.publish_date = fecha
