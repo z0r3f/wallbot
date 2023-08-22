@@ -93,7 +93,6 @@ class DBHelper:
             except Exception as e:
                 print(e)
 
-
     def add_search(self, chat_search):
         stmt = "insert into chat_search (chat_id, kws"
         valu = " values (?, ?"
@@ -160,7 +159,6 @@ class DBHelper:
         except Exception as e:
             print(e)
 
-    # Actualiza el precio pero no el campo observaciones
     def update_item(self, item_id, price, obs):
         stmt = "update item " \
                   "set price = ?, " \
