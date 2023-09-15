@@ -422,6 +422,10 @@ def guardarCategoria(call):
     else:
         cs.cat_ids = call.message.text
 
+     # Borrar teclado categorias
+    global tecladoCategorias
+    bot.delete_message(call.message.chat.id, tecladoCategorias.message_id)
+
     if cs.cat_ids != None :
         subcategorias = buscarSubCategoria(cs.cat_ids)
 
@@ -448,10 +452,6 @@ def guardarCategoria(call):
 
             for fila in filas:
                 teclado.row(*fila)
-
-            # Borrar teclado categorias
-            global tecladoCategorias
-            bot.delete_message(call.message.chat.id, tecladoCategorias.message_id)
 
             # Enviar el teclado al usuario
             global tecladoSubCategorias
