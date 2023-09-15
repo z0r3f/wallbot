@@ -13,7 +13,7 @@ from decimal import Decimal
 from logging.handlers import RotatingFileHandler
 from telebot import TeleBot
 from telebot import types
-from telebot.types import InputMediaPhoto, InputMediaVideo, InlineKeyboardMarkup, InlineKeyboardButton, ChatMember
+from telebot.types import InputMediaPhoto, InputMediaVideo, InlineKeyboardMarkup, InlineKeyboardButton, ChatMember, ForceReply
 from telebot.apihelper import ApiTelegramException, ApiException
 from datetime import datetime
 from urllib.parse import urlparse
@@ -44,6 +44,7 @@ ICON_USER        = u'\U0001F464'  # 👤
 ICON_MONEY       = u'\U0001F4B8'  # 💸
 
 global tecladoCategorias
+global tecladoSubCategorias
 
 def notel(chat_id, producto, obs):
     text = ""
@@ -322,7 +323,8 @@ def inicio(call):
 
 
 def añadir(call):
-    busqueda = bot.send_message(call.message.chat.id, 'Introduce la busqueda:')
+    markup = ForceReply()
+    busqueda = bot.send_message(call.message.chat.id, 'Introduce la busqueda:', reply_markup=markup)
     bot.register_next_step_handler(busqueda, guardarBusqueda)
 
 
@@ -338,9 +340,15 @@ def guardarBusqueda(message):
         if busqueda is not None:
             bot.send_message(message.chat.id, 'Esa busqueda ya ha sido registrada')
         else:
+            # Limpiar categorias
+            cs.cat_ids = None
+            cs.sub_cat_ids = None
+
             cs.chat_id = message.chat.id
             cs.kws = message.text
-            rangoPrecio = bot.send_message(message.chat.id,  'Introduce el rango de precio (min-max):')
+
+            markup = ForceReply()
+            rangoPrecio = bot.send_message(message.chat.id, 'Introduce el rango de precio (min-max):', reply_markup=markup)
             bot.register_next_step_handler(rangoPrecio, guardarRangoPrecio)
 
 
@@ -391,10 +399,21 @@ def handle_query(call):
         categoriaId = catAux[1]
         call.message.text = categoriaId
         guardarCategoria(call)
+    elif catAux[0] == "subcategoria":
+        subCategoriaId = catAux[1]
+        call.message.text = subCategoriaId
+        guardarSubCategoria(call)
     elif catAux[0] == "id":
         chatId = catAux[1]
         id = catAux[2]
         borrarBusqueda(chatId, id)
+
+
+def buscarSubCategoria(id):
+    data = get_categories(URL_CATEGORIES)
+    for categoria in data['categories']:
+        if categoria['id'] == int(id):
+            return categoria['subcategories']
 
 
 def guardarCategoria(call):
@@ -403,7 +422,61 @@ def guardarCategoria(call):
     else:
         cs.cat_ids = call.message.text
 
-    exclude_words = bot.send_message(call.message.chat.id,  'Si lo deseas, introduce las palabras que quieras excluir de tu busqueda separadas por coma. De lo contrario escribe "Nada":')
+    if cs.cat_ids != None :
+        subcategorias = buscarSubCategoria(cs.cat_ids)
+
+        if len(subcategorias) > 0:
+            # Crear las filas de botones
+            filas = []
+            fila_actual = []
+            for categoria in subcategorias:
+                boton = telebot.types.InlineKeyboardButton(str(categoria['name']), callback_data='subcategoria,' + str(categoria['id']))
+                fila_actual.append(boton)
+                if len(fila_actual) == 3:
+                    filas.append(fila_actual)
+                    fila_actual = []
+
+            # Comprobar si hay una fila parcial al final
+            if fila_actual:
+                filas.append(fila_actual)
+
+            # Crear el teclado con las filas
+            teclado = telebot.types.InlineKeyboardMarkup()
+
+            boton = types.InlineKeyboardButton("Todos" , callback_data='subcategoria,' + "all")
+            teclado.add(boton)
+
+            for fila in filas:
+                teclado.row(*fila)
+
+            # Borrar teclado categorias
+            global tecladoCategorias
+            bot.delete_message(call.message.chat.id, tecladoCategorias.message_id)
+
+            # Enviar el teclado al usuario
+            global tecladoSubCategorias
+            tecladoSubCategorias = bot.send_message(call.message.chat.id, text='Selecciona una subcategoria', reply_markup=teclado)
+        else:
+            markup = ForceReply()
+            exclude_words = bot.send_message(call.message.chat.id, 'Si lo deseas, introduce las palabras que quieras excluir de tu busqueda separadas por coma. De lo contrario escribe "Nada":', reply_markup=markup)
+            bot.register_next_step_handler(exclude_words, guardarExcludeWords)
+    else:
+        markup = ForceReply()
+        exclude_words = bot.send_message(call.message.chat.id, 'Si lo deseas, introduce las palabras que quieras excluir de tu busqueda separadas por coma. De lo contrario escribe "Nada":', reply_markup=markup)
+        bot.register_next_step_handler(exclude_words, guardarExcludeWords)
+
+
+def guardarSubCategoria(call):
+    if call.message.text == 'all':
+        cs.sub_cat_ids = None
+    else:
+        cs.sub_cat_ids = call.message.text
+
+    global tecladoSubCategorias
+    bot.delete_message(call.message.chat.id, tecladoSubCategorias.message_id)        
+
+    markup = ForceReply()
+    exclude_words = bot.send_message(call.message.chat.id, 'Si lo deseas, introduce las palabras que quieras excluir de tu busqueda separadas por coma. De lo contrario escribe "Nada":', reply_markup=markup)
     bot.register_next_step_handler(exclude_words, guardarExcludeWords)
 
 
@@ -417,10 +490,7 @@ def guardarExcludeWords(message):
     cs.publish_date = fecha
     logging.info('%s', cs)
     db.add_search(cs)
-
-    global tecladoCategorias
-    bot.delete_message(message.chat.id, tecladoCategorias.message_id)
-
+   
     json = get_categories(URL_CATEGORIES)
 
     try:
@@ -431,6 +501,13 @@ def guardarExcludeWords(message):
             idCategoria = int(cs.cat_ids)
             nombreCategoria = obtenerNombreCategoriaById(idCategoria, json)
             text += "<b>Categoria: </b>" + nombreCategoria + "\n"
+            if cs.sub_cat_ids != None:
+                idSubCategoria = int(cs.sub_cat_ids)
+                subcategorias = buscarSubCategoria(idCategoria)
+                nombreSubCategoria = obtenerNombreSubCategoriaById(idSubCategoria, subcategorias)
+                text += "<b>Subcategoria: </b>" + nombreSubCategoria + "\n"
+            else:
+                text += "<b>Subcategoria: </b> Todos\n"
         else:
             text += "<b>Categoria: </b> Todos\n"
         text += "<b>Precio Minimo: </b>" + cs.min_price + "\n"
@@ -455,6 +532,13 @@ def guardarExcludeWords(message):
                 idCategoria = int(cs.cat_ids)
                 nombreCategoria = obtenerNombreCategoriaById(idCategoria, json)
                 text += "<b>Categoria: </b>" + nombreCategoria + "\n"
+                if cs.sub_cat_ids != None:
+                    idSubCategoria = int(cs.sub_cat_ids)
+                    subcategorias = buscarSubCategoria(idCategoria)
+                    nombreSubCategoria = obtenerNombreSubCategoriaById(idSubCategoria, subcategorias)
+                    text += "<b>Subcategoria: </b>" + nombreSubCategoria + "\n"
+                else:
+                    text += "<b>Subcategoria: </b> Todos\n"
             else:
                 text += "<b>Categoria: </b> Todos\n"
             text += "<b>Precio Minimo: </b>" + cs.min_price + "\n"
@@ -522,6 +606,17 @@ def listar(call):
                 nombreCategoria = obtenerNombreCategoriaById(idCategoria, json)
                 categoria = "<b>Categoria:</b> " + nombreCategoria
                 text += categoria
+
+                text += '\n'
+
+                if busqueda.sub_cat_ids is not None:
+                    idSubCategoria = int(busqueda.sub_cat_ids)
+                    subcategorias = buscarSubCategoria(busqueda.cat_ids)
+                    nombreSubCategoria = obtenerNombreSubCategoriaById(idSubCategoria, subcategorias)
+                    subcategoria = "<b>Subcategoria:</b> " + nombreSubCategoria
+                    text += subcategoria
+                else:
+                    text += "<b>Subcategoria:</b> Todos"
             else:
                 text += "<b>Categoria:</b> Todos"
 
@@ -583,6 +678,15 @@ def obtenerNombreCategoriaById(idCategoria, json):
         for categoria in json['categories']:
             if categoria['id'] == idCategoria:
                 return categoria['name']
+    except Exception as e:
+        logging.error(e)
+
+
+def obtenerNombreSubCategoriaById(idSubCategoria, json):
+    try:
+        for subcategoria in json:
+            if subcategoria['id'] == idSubCategoria:
+                return subcategoria['name']
     except Exception as e:
         logging.error(e)
 

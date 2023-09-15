@@ -5,7 +5,7 @@ import time
 class ChatSearch:
 
     def __init__(self, chat_id=None, kws=None, cat_ids=None, min_price=None, max_price=None,
-                 dist=None, publish_date=None, orde=None, username=None, name=None, active=None, user_active=None, exclude_words=None):
+                 dist=None, publish_date=None, orde=None, username=None, name=None, active=None, user_active=None, exclude_words=None, sub_cat_ids=None):
         self.chat_id = chat_id
         self.kws = kws
         self.cat_ids = cat_ids
@@ -19,12 +19,13 @@ class ChatSearch:
         self.active = active
         self.user_active = user_active
         self.exclude_words = exclude_words
+        self.sub_cat_ids = sub_cat_ids
 
     def __str__(self) -> str:
         return "<ChatSearch chat_id:%s kws:%s cat_ids:%s min_price:%s max_price:%s " \
-               "dist:%s publish_date:%s orde:%s username:%s name:%s active:%s user_active:%s exclude_words:%s>" % \
+               "dist:%s publish_date:%s orde:%s username:%s name:%s active:%s user_active:%s exclude_words:%s sub_cat_ids:%s>" % \
                (self.chat_id, self.kws, self.cat_ids, self.min_price, self.max_price,
-                self.dist, self.publish_date, self.orde, self.username, self.name, self.active, self.user_active, self.exclude_words)
+                self.dist, self.publish_date, self.orde, self.username, self.name, self.active, self.user_active, self.exclude_words, self.sub_cat_ids)
 
 
 class Item:
@@ -81,7 +82,8 @@ class DBHelper:
                       "name text, " \
                       "active int default 1," \
                       "user_active int default 1," \
-                      "exclude_words text)"
+                      "exclude_words text," \
+                      "sub_cat_ids text)"
         self.conn.execute(tblstmtchat)
         self.conn.commit()
 
@@ -137,6 +139,10 @@ class DBHelper:
             stmt += ", exclude_words"
             valu += ", ?"
             args += (chat_search.exclude_words, )
+        if chat_search.sub_cat_ids is not None:
+            stmt += ", sub_cat_ids"
+            valu += ", ?"
+            args += (chat_search.sub_cat_ids, )
         
         stmt += ", user_active"
         valu += ", ?"
@@ -194,48 +200,48 @@ class DBHelper:
         return None
     
     def search_chat_search_by_title(self, title, chat_id):
-        stmt = "select chat_id, kws, cat_ids, min_price, max_price, dist, publish_date, ord, username, name, active, user_active, exclude_words " \
+        stmt = "select chat_id, kws, cat_ids, min_price, max_price, dist, publish_date, ord, username, name, active, user_active, exclude_words, sub_cat_ids " \
                  "from chat_search where kws = (?) and chat_id = (?) and active = 1"
         args = (title, chat_id)
         try:
             for row in self.conn.execute(stmt, args):
-                i = ChatSearch(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12])
+                i = ChatSearch(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13])
                 return i
         except Exception as e:
             print(e)
         return None
     
     def search_chat_search_by_title_cat_ids(self, title, cat_ids, chat_id):
-        stmt = "select chat_id, kws, cat_ids, min_price, max_price, dist, publish_date, ord, username, name, active, user_active, exclude_words " \
+        stmt = "select chat_id, kws, cat_ids, min_price, max_price, dist, publish_date, ord, username, name, active, user_active, exclude_words, sub_cat_ids " \
                  "from chat_search where kws = (?) and cat_ids = (?) and chat_id = (?) and active = 1"
         args = (title, cat_ids, chat_id)
         try:
             for row in self.conn.execute(stmt, args):
-                i = ChatSearch(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12])
+                i = ChatSearch(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13])
                 return i
         except Exception as e:
             print(e)
         return None
 
     def get_chat_searchs(self, chat_id):
-        stmt = "select chat_id, kws, cat_ids, min_price, max_price, dist, publish_date, ord, username, name, active, user_active, exclude_words from chat_search " \
+        stmt = "select chat_id, kws, cat_ids, min_price, max_price, dist, publish_date, ord, username, name, active, user_active, exclude_words, sub_cat_ids from chat_search " \
                 "where chat_id = ? and active = 1"
         lista = []
         try:
             for row in self.conn.execute(stmt, (chat_id, )):
-                c = ChatSearch(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12])
+                c = ChatSearch(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13])
                 lista.append(c)
         except Exception as e:
             print(e)
         return lista
 
     def get_chats_searchs(self):
-        stmt = "select chat_id, kws, cat_ids, min_price, max_price, dist, publish_date, ord, username, name, active, user_active, exclude_words from chat_search " \
+        stmt = "select chat_id, kws, cat_ids, min_price, max_price, dist, publish_date, ord, username, name, active, user_active, exclude_words, sub_cat_ids from chat_search " \
                 "where active = 1 and user_active = 1"
         lista = []
         try:
             for row in self.conn.execute(stmt):
-                c = ChatSearch(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12])
+                c = ChatSearch(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13])
                 lista.append(c)
         except Exception as e:
             print(e)
