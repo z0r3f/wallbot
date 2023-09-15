@@ -87,8 +87,8 @@ class DBHelper:
         self.conn.execute(tblstmtchat)
         self.conn.commit()
 
-        if version == '1.1.2':
-            stmt = "ALTER TABLE chat_search ADD COLUMN exclude_words text"
+        if version == '1.1.3':
+            stmt = "ALTER TABLE chat_search ADD COLUMN sub_cat_ids text"
             try:
                 self.conn.execute(stmt)
                 self.conn.commit()

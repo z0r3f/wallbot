@@ -631,7 +631,11 @@ def listar(call):
             text += '------------------------------------------------------'
             cont += 1
 
-        bot.send_message(call.message.chat.id, text, parse_mode='HTML')
+        if len(text) > 4095:
+            for x in range(0, len(text), 4095):
+                bot.send_message(call.message.chat.id, text=text[x:x+4095], parse_mode='HTML')
+        else:
+            bot.send_message(call.message.chat.id, text, parse_mode='HTML')
 
 
 def estadisticas(call):
