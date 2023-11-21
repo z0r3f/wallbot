@@ -629,12 +629,16 @@ def listar(call):
 
             text += '\n'
             text += '------------------------------------------------------'
+
+            # Verificar si el contador es múltiplo de 10
+            if cont % 10 == 0:
+                bot.send_message(call.message.chat.id, text, parse_mode='HTML')
+                text = ICON_ARROW + ' <b>Lista de productos en seguimiento (continuación):</b>\n'  # Reiniciar el texto
+
             cont += 1
 
-        if len(text) > 4095:
-            for x in range(0, len(text), 4095):
-                bot.send_message(call.message.chat.id, text=text[x:x+4095], parse_mode='HTML')
-        else:
+        # Enviar el mensaje final si no se ha enviado antes
+        if len(text) > 0:
             bot.send_message(call.message.chat.id, text, parse_mode='HTML')
 
 
