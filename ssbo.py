@@ -16,7 +16,7 @@ import locale
 
 TOKEN = os.getenv("BOT_TOKEN", "Bot Token does not exist")
 URL = "https://api.telegram.org/bot{}/".format(TOKEN)
-URL_ITEMS = "https://api.wallapop.com/api/v3/general/search"
+URL_ITEMS = "https://api.wallapop.com/api/v3/search?source=search_box"
 PROFILE = os.getenv("PROFILE")
 
 if PROFILE is None:
@@ -56,7 +56,7 @@ def notel(chat_id, price, title, url_item, obs=None):
 
 def get_url_list(search):
     url = URL_ITEMS
-    url += '?keywords='
+    url += '&keywords='
     url += "+".join(search.kws.split(" "))
     url += '&time_filter=today'
     if search.cat_ids is not None:
@@ -74,27 +74,25 @@ def get_url_list(search):
     if search.orde is not None:
         url += '&order_by='
         url += search.orde
+
+    logging.debug(f'URL: ${url}')
     return url
 
 
 def get_items(url, chat_id):
     try:
-        resp = requests.get(url=url)
+        resp = requests.get(url=url, headers={'x-deviceos': '0'})
         data = resp.json()
-        # print(data)
-        for x in data['search_objects']:
-            # print('\t'.join((datetime.datetime.today().strftime('%Y-%m-%d %H:%M'),
-            #                  str(x['id']), str(x['price']), x['title'], x['user']['id'])))
-            # logging.info('\t'.join((str(x['id']), str(x['price']), x['title'], x['user']['id'])))
-            logging.info('Encontrado: id=%s, price=%s, title=%s, user=%s',str(x['id']), locale.currency(x['price'], grouping=True), x['title'], x['user']['id'])
+        logging.debug(f'Data: ${data}')
+        for x in data['data']['section']['payload']['items']:
+            logging.info('Encontrado: id=%s, price=%s, title=%s, user=%s',str(x['id']), locale.currency(x['price']['amount'], grouping=True), x['title'], x['user_id'])
             i = db.search_item(x['id'], chat_id)
             if i is None:
-                db.add_item(x['id'], chat_id, x['title'], x['price'], x['web_slug'], x['user']['id'])
-                notel(chat_id, x['price'], x['title'], x['web_slug'])
-                logging.info('New: id=%s, price=%s, title=%s', str(x['id']), locale.currency(x['price'], grouping=True), x['title'])
+                db.add_item(x['id'], chat_id, x['title'], x['price']['amount'], x['web_slug'], x['user_id'])
+                notel(chat_id, x['price']['amount'], x['title'], x['web_slug'])
+                logging.info('New: id=%s, price=%s, title=%s', str(x['id']), locale.currency(x['price']['amount'], grouping=True), x['title'])
             else:
-                # Si está comparar precio...
-                money = str(x['price'])
+                money = str(x['price']['amount'])
                 value_json = Decimal(sub(r'[^\d.]', '', money))
                 value_db = Decimal(sub(r'[^\d.]', '', i.price))
                 if value_json < value_db:
@@ -104,8 +102,8 @@ def get_items(url, chat_id):
                         new_obs += i.observaciones
                     db.update_item(x['id'], money, new_obs)
                     obs = ' < ' + new_obs
-                    notel(chat_id, x['price'], x['title'], x['web_slug'], obs)
-                    logging.info('Baja: id=%s, price=%s, title=%s', str(x['id']), locale.currency(x['price'], grouping=True), x['title'])
+                    notel(chat_id, x['price']['amount'], x['title'], x['web_slug'], obs)
+                    logging.info('Baja: id=%s, price=%s, title=%s', str(x['id']), locale.currency(x['price']['amount'], grouping=True), x['title'])
     except Exception as e:
         logging.error(e)
 
@@ -201,17 +199,7 @@ def add_search(message):
 #     print('echo: "' + message.text + '"')
 #     bot.reply_to(message, message.text)
 
-pathlog = 'wallbot.log'
-if PROFILE is None:
-    pathlog = '/logs/' + pathlog
 
-logging.basicConfig(
-    handlers=[RotatingFileHandler(pathlog, maxBytes=1000000, backupCount=10)],
-#    filename='wallbot.log',
-    level=logging.INFO,
-    format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %H:%M:%S')
-
-locale.setlocale(locale.LC_ALL, 'es_ES.UTF-8')
 
 #logger = telebot.logger
 #formatter = logging.Formatter('[%(asctime)s] %(thread)d {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s',
@@ -228,6 +216,7 @@ def wallapop():
     while True:
         # Recupera de db las búsquedas que hay que hacer en wallapop con sus respectivos chats_id
         for search in db.get_chats_searchs():
+
             u = get_url_list(search)
 
             # Lanza las búsquedas y notificaciones ...
@@ -255,8 +244,23 @@ def recovery(times):
         recovery(times*2)
 
 
+def setup_logger():
+    pathlog = 'wallbot.log'
+    level = logging.DEBUG
+    if PROFILE is None:
+        pathlog = '/logs/' + pathlog
+        level = logging.INFO
+
+    logging.basicConfig(
+        handlers=[RotatingFileHandler(pathlog, maxBytes=1000000, backupCount=10)],
+        level=level,
+        format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %H:%M:%S')
+
+    locale.setlocale(locale.LC_ALL, 'es_ES.UTF-8')
+
+
 def main():
-    print("JanJanJan starting...")
+    setup_logger()
     logging.info("JanJanJan starting...")
     db.setup(readVersion())
     threading.Thread(target=wallapop).start()
