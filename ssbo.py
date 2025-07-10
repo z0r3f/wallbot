@@ -81,31 +81,83 @@ def get_url_list(search):
 
 def get_items(url, chat_id):
     try:
-        resp = requests.get(url=url, headers={'x-deviceos': '0'})
-        data = resp.json()
-        logging.debug(f'Data: ${data}')
-        for x in data['data']['section']['payload']['items']:
-            logging.info('Encontrado: id=%s, price=%s, title=%s, user=%s',str(x['id']), locale.currency(x['price']['amount'], grouping=True), x['title'], x['user_id'])
-            i = db.search_item(x['id'], chat_id)
-            if i is None:
-                db.add_item(x['id'], chat_id, x['title'], x['price']['amount'], x['web_slug'], x['user_id'])
-                notel(chat_id, x['price']['amount'], x['title'], x['web_slug'])
-                logging.info('New: id=%s, price=%s, title=%s', str(x['id']), locale.currency(x['price']['amount'], grouping=True), x['title'])
+        # Realizar la petición HTTP
+        headers = {'x-deviceos': '0'}
+        response = requests.get(url=url, headers=headers)
+        response_data = response.json()
+        
+        # Extraer la lista de items del JSON
+        items = response_data['data']['section']['payload']['items']
+        
+        for item in items:
+            # Extraer datos relevantes del item
+            item_id = item['id']
+            item_price = item['price']['amount']
+            item_title = item['title']
+            item_user = item['user_id']
+            item_web_slug = item['web_slug']
+            
+            # Registrar item encontrado
+            logging.info(
+                'Encontrado: id=%s, price=%s, title=%s, user=%s',
+                str(item_id),
+                locale.currency(item_price, grouping=True),
+                item_title,
+                item_user
+            )
+            
+            # Buscar si el item ya existe
+            existing_item = db.search_item(item_id, chat_id)
+            
+            if existing_item is None:
+                # Procesar item nuevo
+                _process_new_item(item_id, chat_id, item_title, item_price, item_web_slug, item_user)
             else:
-                money = str(x['price']['amount'])
-                value_json = Decimal(sub(r'[^\d.]', '', money))
-                value_db = Decimal(sub(r'[^\d.]', '', i.price))
-                if value_json < value_db:
-                    new_obs = locale.currency(i.price, grouping=True)
-                    if i.observaciones is not None:
-                        new_obs += ' < '
-                        new_obs += i.observaciones
-                    db.update_item(x['id'], money, new_obs)
-                    obs = ' < ' + new_obs
-                    notel(chat_id, x['price']['amount'], x['title'], x['web_slug'], obs)
-                    logging.info('Baja: id=%s, price=%s, title=%s', str(x['id']), locale.currency(x['price']['amount'], grouping=True), x['title'])
+                # Procesar actualización de precio si corresponde
+                _process_price_update(existing_item, item_id, item_price, item_title, item_web_slug, chat_id)
+                
     except Exception as e:
-        logging.error(e)
+        logging.error(f"Error procesando items: {str(e)}")
+
+def _process_new_item(item_id, chat_id, title, price, web_slug, user_id):
+    """
+    Procesa un item nuevo encontrado
+    """
+    db.add_item(item_id, chat_id, title, price, web_slug, user_id)
+    notel(chat_id, price, title, web_slug)
+    logging.info(
+        'New: id=%s, price=%s, title=%s',
+        str(item_id),
+        locale.currency(price, grouping=True),
+        title
+    )
+
+def _process_price_update(existing_item, item_id, new_price, title, web_slug, chat_id):
+    """
+    Procesa la actualización de precio de un item existente
+    """
+    # Convertir precios a decimales para comparación
+    new_price_decimal = Decimal(sub(r'[^\d.]', '', str(new_price)))
+    old_price_decimal = Decimal(sub(r'[^\d.]', '', existing_item.price))
+    
+    if new_price_decimal < old_price_decimal:
+        # Construir historial de precios
+        price_history = locale.currency(existing_item.price, grouping=True)
+        if existing_item.observaciones:
+            price_history += ' < ' + existing_item.observaciones
+            
+        # Actualizar item en base de datos
+        db.update_item(item_id, str(new_price), price_history)
+        
+        # Notificar cambio de precio
+        notel(chat_id, new_price, title, web_slug, ' < ' + price_history)
+        
+        logging.info(
+            'Baja: id=%s, price=%s, title=%s',
+            str(item_id),
+            locale.currency(new_price, grouping=True),
+            title
+        )
 
 
 def handle_exception(self, exception):
@@ -247,14 +299,28 @@ def recovery(times):
 def setup_logger():
     pathlog = 'wallbot.log'
     level = logging.DEBUG
+    
     if PROFILE is None:
         pathlog = '/logs/' + pathlog
         level = logging.INFO
-
-    logging.basicConfig(
-        handlers=[RotatingFileHandler(pathlog, maxBytes=1000000, backupCount=10)],
-        level=level,
-        format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %H:%M:%S')
+        # Configuración solo con archivo cuando PROFILE no está definido
+        logging.basicConfig(
+            handlers=[RotatingFileHandler(pathlog, maxBytes=1000000, backupCount=10)],
+            level=level,
+            format='%(asctime)s %(message)s', 
+            datefmt='%m/%d/%Y %H:%M:%S'
+        )
+    else:
+        # Configuración con archivo y salida estándar cuando PROFILE está definido
+        logging.basicConfig(
+            handlers=[
+                RotatingFileHandler(pathlog, maxBytes=1000000, backupCount=10),
+                logging.StreamHandler(sys.stdout)
+            ],
+            level=level,
+            format='%(asctime)s %(message)s', 
+            datefmt='%m/%d/%Y %H:%M:%S'
+        )
 
     locale.setlocale(locale.LC_ALL, 'es_ES.UTF-8')
 
