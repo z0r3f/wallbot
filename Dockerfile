@@ -13,15 +13,14 @@ ENV TZ Europe/Madrid
 
 WORKDIR /app
 
-ADD VERSION .
+COPY VERSION .
 
 COPY requirements.txt requirements.txt
 RUN pip3 install -r requirements.txt
 
-COPY ssbo.py .
-COPY dbhelper.py .
+COPY src/ src/
 
 RUN mkdir /data
 RUN mkdir /logs
 
-CMD [ "python3", "./ssbo.py"]
+CMD [ "python3", "-m", "src.wallbot"]

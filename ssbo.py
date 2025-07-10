@@ -1,18 +1,20 @@
 #!/usr/bin/python3.5
 
-import requests
-import time
-import datetime
-import telebot
-from dbhelper import DBHelper, ChatSearch, Item
-from re import sub
-from decimal import Decimal
+import locale
 import logging
-from logging.handlers import RotatingFileHandler
+import os
 import sys
 import threading
-import os
-import locale
+import time
+from decimal import Decimal
+from logging.handlers import RotatingFileHandler
+from re import sub
+
+import requests
+import telebot
+
+from src.wallbot.database.db_helper import DBHelper
+from src.wallbot.database.models import ChatSearch
 
 TOKEN = os.getenv("BOT_TOKEN", "Bot Token does not exist")
 URL = "https://api.telegram.org/bot{}/".format(TOKEN)
@@ -23,7 +25,6 @@ if PROFILE is None:
     db = DBHelper()
 else:
     db = DBHelper("db.sqlite")
-
 
 ICON_VIDEO_GAMES = u'\U0001F3AE'  # 🎮
 ICON_WARNING____ = u'\U000026A0'  # ⚠️
@@ -85,10 +86,10 @@ def get_items(url, chat_id):
         headers = {'x-deviceos': '0'}
         response = requests.get(url=url, headers=headers)
         response_data = response.json()
-        
+
         # Extraer la lista de items del JSON
         items = response_data['data']['section']['payload']['items']
-        
+
         for item in items:
             # Extraer datos relevantes del item
             item_id = item['id']
@@ -96,7 +97,7 @@ def get_items(url, chat_id):
             item_title = item['title']
             item_user = item['user_id']
             item_web_slug = item['web_slug']
-            
+
             # Registrar item encontrado
             logging.info(
                 'Encontrado: id=%s, price=%s, title=%s, user=%s',
@@ -105,19 +106,20 @@ def get_items(url, chat_id):
                 item_title,
                 item_user
             )
-            
+
             # Buscar si el item ya existe
             existing_item = db.search_item(item_id, chat_id)
-            
+
             if existing_item is None:
                 # Procesar item nuevo
                 _process_new_item(item_id, chat_id, item_title, item_price, item_web_slug, item_user)
             else:
                 # Procesar actualización de precio si corresponde
                 _process_price_update(existing_item, item_id, item_price, item_title, item_web_slug, chat_id)
-                
+
     except Exception as e:
         logging.error(f"Error procesando items: {str(e)}")
+
 
 def _process_new_item(item_id, chat_id, title, price, web_slug, user_id):
     """
@@ -132,6 +134,7 @@ def _process_new_item(item_id, chat_id, title, price, web_slug, user_id):
         title
     )
 
+
 def _process_price_update(existing_item, item_id, new_price, title, web_slug, chat_id):
     """
     Procesa la actualización de precio de un item existente
@@ -139,19 +142,19 @@ def _process_price_update(existing_item, item_id, new_price, title, web_slug, ch
     # Convertir precios a decimales para comparación
     new_price_decimal = Decimal(sub(r'[^\d.]', '', str(new_price)))
     old_price_decimal = Decimal(sub(r'[^\d.]', '', existing_item.price))
-    
+
     if new_price_decimal < old_price_decimal:
         # Construir historial de precios
         price_history = locale.currency(existing_item.price, grouping=True)
         if existing_item.observaciones:
             price_history += ' < ' + existing_item.observaciones
-            
+
         # Actualizar item en base de datos
         db.update_item(item_id, str(new_price), price_history)
-        
+
         # Notificar cambio de precio
         notel(chat_id, new_price, title, web_slug, ' < ' + price_history)
-        
+
         logging.info(
             'Baja: id=%s, price=%s, title=%s',
             str(item_id),
@@ -199,7 +202,7 @@ def delete_search(message):
 @bot.message_handler(commands=['lis', 'listar', 'l'])
 def get_searchs(message):
     text = ''
-    for chat_search in db.get_chat_searchs(message.chat.id):
+    for chat_search in db.get_chat_searches(message.chat.id):
         if len(text) > 0:
             text += '\n'
         text += chat_search.kws
@@ -252,14 +255,13 @@ def add_search(message):
 #     bot.reply_to(message, message.text)
 
 
-
-#logger = telebot.logger
-#formatter = logging.Formatter('[%(asctime)s] %(thread)d {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s',
+# logger = telebot.logger
+# formatter = logging.Formatter('[%(asctime)s] %(thread)d {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s',
 #                              '%m-%d %H:%M:%S')
-#ch = logging.StreamHandler(sys.stdout)
-#logger.addHandler(ch)
-#logger.setLevel(logging.INFO)  # or use logging.INFO
-#ch.setFormatter(formatter)
+# ch = logging.StreamHandler(sys.stdout)
+# logger.addHandler(ch)
+# logger.setLevel(logging.INFO)  # or use logging.INFO
+# ch.setFormatter(formatter)
 
 
 # FIN
@@ -267,8 +269,7 @@ def add_search(message):
 def wallapop():
     while True:
         # Recupera de db las búsquedas que hay que hacer en wallapop con sus respectivos chats_id
-        for search in db.get_chats_searchs():
-
+        for search in db.get_chats_searches():
             u = get_url_list(search)
 
             # Lanza las búsquedas y notificaciones ...
@@ -293,13 +294,13 @@ def recovery(times):
         print("Ha ocurrido un error con la llamada a Telegram. Se reintenta la conexión")
         if times > 16:
             times = 16
-        recovery(times*2)
+        recovery(times * 2)
 
 
 def setup_logger():
     pathlog = 'wallbot.log'
     level = logging.DEBUG
-    
+
     if PROFILE is None:
         pathlog = '/logs/' + pathlog
         level = logging.INFO
@@ -307,7 +308,7 @@ def setup_logger():
         logging.basicConfig(
             handlers=[RotatingFileHandler(pathlog, maxBytes=1000000, backupCount=10)],
             level=level,
-            format='%(asctime)s %(message)s', 
+            format='%(asctime)s %(message)s',
             datefmt='%m/%d/%Y %H:%M:%S'
         )
     else:
@@ -318,7 +319,7 @@ def setup_logger():
                 logging.StreamHandler(sys.stdout)
             ],
             level=level,
-            format='%(asctime)s %(message)s', 
+            format='%(asctime)s %(message)s',
             datefmt='%m/%d/%Y %H:%M:%S'
         )
 
