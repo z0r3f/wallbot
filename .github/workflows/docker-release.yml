@@ -33,9 +33,9 @@ jobs:
         run: docker build --tag z0r3f/wallbot-docker:latest .
 
       - name: Tag Docker image
-        run: docker tag z0r3f/wallbot-docker:latest z0r3f/wallbot-docker:${{ env.VERSION }}
+        run: docker tag z0r3f/wallbot-docker:latest z0r3f/wallbot-docker:${{ github.event.release.tag_name }}
 
       - name: Push Docker images
         run: |
           docker push z0r3f/wallbot-docker:latest
-          docker push z0r3f/wallbot-docker:${{ env.VERSION }}
+          docker push z0r3f/wallbot-docker:${{ github.event.release.tag_name }}
