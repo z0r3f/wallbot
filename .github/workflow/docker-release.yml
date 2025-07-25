@@ -1,0 +1,41 @@
+name: Build and Push Docker Image on Release
+
+on:
+  release:
+    types: [ published ]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Read version
+        id: version
+        run: echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build Docker image
+        run: docker build --tag z0r3f/wallbot-docker:latest .
+
+      - name: Tag Docker image
+        run: docker tag z0r3f/wallbot-docker:latest z0r3f/wallbot-docker:${{ env.VERSION }}
+
+      - name: Push Docker images
+        run: |
+          docker push z0r3f/wallbot-docker:latest
+          docker push z0r3f/wallbot-docker:${{ env.VERSION }}
