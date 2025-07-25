@@ -1,0 +1,13 @@
+https://api.wallapop.com/api/v3/general/search?country_code=ES&density_type=20&filters_source=quick_filters&keywords=synology&language=es_ES&latitude=40.4893538&longitude=-3.6827461&order=closest&search_id=a1f030b2-16b7-400f-ae1c-4d216b05f2e5&start=0&step=1&time_filter=today&user_city=Madrid&user_province=Madrid
+https://api.wallapop.com/api/v3/general/search?country_code=ES&density_type=20&filters_source=quick_filters&keywords=synology&language=es_ES&latitude=40.4893538&longitude=-3.6827461&order=closest&search_id=a1f030b2-16b7-400f-ae1c-4d216b05f2e5&start=0&step=2&time_filter=today&user_city=Madrid&user_province=Madrid
+
+
+https://api.wallapop.com/api/v3/general/search?keywords=synology&dist=400&publishDate=24&order=creationDate-des
+
+https://api.wallapop.com/api/v3/general/search?time_filter=today&keywords=synology&order_by=newest&latitude=40.4893538&longitude=-3.6827461&filters_source=quick_filters&language=es_ES
+
+1. script para actualizar la tabla chat_search
+columna `ord` con `creationDate-des` -> `newest`
+parámetro en la query `ord` -> `order_by`
+
+2. añadir parámetro `time_filter=today`
