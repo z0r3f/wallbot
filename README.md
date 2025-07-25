@@ -1,4 +1,21 @@
-![Docker Image Size (latest by date)](https://img.shields.io/docker/image-size/z0r3f/wallbot-docker) [![Docker pulls](https://img.shields.io/docker/pulls/z0r3f/wallbot-docker?style=flat-square)](https://hub.docker.com/r/z0r3f/wallbot-docker)  [![commit_freq](https://img.shields.io/github/commit-activity/m/z0r3f/wallbot?style=flat-square)](https://github.com/z0r3f/wallbot/commits) [![last_commit](https://img.shields.io/github/last-commit/z0r3f/wallbot?style=flat-square)](https://github.com/z0r3f/wallbot/commits) ![Docker Image Version (latest by date)](https://img.shields.io/docker/v/z0r3f/wallbot-docker) ![GitHub](https://img.shields.io/github/license/z0r3f/wallbot)
+<!-- Docker Badges -->
+[![Docker Image Size (latest by date)](https://img.shields.io/docker/image-size/z0r3f/wallbot-docker)](https://hub.docker.com/r/z0r3f/wallbot-docker)
+[![Docker pulls](https://img.shields.io/docker/pulls/z0r3f/wallbot-docker?style=flat-square)](https://hub.docker.com/r/z0r3f/wallbot-docker)
+[![Docker Image Version (latest by date)](https://img.shields.io/docker/v/z0r3f/wallbot-docker)](https://hub.docker.com/r/z0r3f/wallbot-docker)
+
+<!-- GitHub Actions Badges -->
+[![Docker Release](https://github.com/z0r3f/wallbot/actions/workflows/docker-release.yml/badge.svg)](https://github.com/z0r3f/wallbot/actions/workflows/docker-release.yml)
+[![Build Status](https://github.com/z0r3f/wallbot/actions/workflows/main.yml/badge.svg)](https://github.com/z0r3f/wallbot/actions/workflows/main.yml)
+
+[//]: # ([![Codecov]&#40;https://codecov.io/gh/z0r3f/wallbot/branch/main/graph/badge.svg&#41;]&#40;https://codecov.io/gh/z0r3f/wallbot&#41;)
+
+<!-- Proyecto y actividad -->
+[![commit_freq](https://img.shields.io/github/commit-activity/m/z0r3f/wallbot?style=flat-square)](https://github.com/z0r3f/wallbot/commits)
+[![last_commit](https://img.shields.io/github/last-commit/z0r3f/wallbot?style=flat-square)](https://github.com/z0r3f/wallbot/commits)
+[![Python Version](https://img.shields.io/pypi/pyversions/wallbot-docker)](https://github.com/z0r3f/wallbot)
+
+<!-- Licencia -->
+![GitHub](https://img.shields.io/github/license/z0r3f/wallbot)
 
 # wallbot
 
