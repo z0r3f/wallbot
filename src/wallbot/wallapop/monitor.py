@@ -1,6 +1,7 @@
 import locale
 import logging
 import time
+import random
 from decimal import Decimal
 from re import sub
 from typing import List
@@ -31,13 +32,17 @@ class WallapopMonitor:
         while self.is_running:
             try:
                 self._monitor_cycle()
-                time.sleep(SEARCH_INTERVAL)
+                jitter = SEARCH_INTERVAL * JITTER_FACTOR
+                jittered_interval = SEARCH_INTERVAL + random.uniform(-jitter, jitter)
+                time.sleep(max(0, jittered_interval))
             except KeyboardInterrupt:
                 logging.info("Deteniendo monitoreo...")
                 self.stop()
             except Exception as e:
                 logging.error(f"Error en ciclo de monitoreo: {e}")
-                time.sleep(SEARCH_INTERVAL)
+                jitter = SEARCH_INTERVAL * JITTER_FACTOR
+                jittered_interval = SEARCH_INTERVAL + random.uniform(-jitter, jitter)
+                time.sleep(max(0, jittered_interval))
 
     def stop(self):
         """Detiene el monitoreo"""
