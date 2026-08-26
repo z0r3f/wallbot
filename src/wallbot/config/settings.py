@@ -1,7 +1,8 @@
 import os
 from src.wallbot.utils.version import read_version
 
-PROFILE = os.getenv("PROFILE")
+# Modo depuración: activo solo si DEBUG vale 'true', '1' o 'yes' (case-insensitive)
+DEBUG = os.getenv("DEBUG", "false").strip().lower() in ("true", "1", "yes")
 
 # Versión de la app centralizada
 APP_VERSION = read_version()
@@ -26,7 +27,7 @@ else:
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{TOKEN}/"
 WALLAPOP_API_URL = "https://api.wallapop.com/api/v3/search"
 
-# Rutas según el perfil
-DATABASE_PATH = "db.sqlite" if PROFILE else "/data/db.sqlite"
-LOG_LEVEL = "DEBUG" if PROFILE else "INFO"
-LOG_PATH = "wallbot.log" if PROFILE else "/logs/wallbot.log"
+# Rutas según el modo de ejecución (DEBUG local vs Producción en contenedor)
+DATABASE_PATH = "db.sqlite" if DEBUG else "/data/db.sqlite"
+LOG_LEVEL = "DEBUG" if DEBUG else "INFO"
+LOG_PATH = "wallbot.log" if DEBUG else "/logs/wallbot.log"

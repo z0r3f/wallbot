@@ -3,33 +3,30 @@ import logging
 import sys
 from logging.handlers import RotatingFileHandler
 
-from src.wallbot.config.settings import PROFILE
+from src.wallbot.config.settings import DEBUG, LOG_PATH
 
 
 def setup_logger():
-    log_path = 'wallbot.log'
-    level = logging.DEBUG
+    # En producción se registran eventos INFO; en desarrollo eventos DEBUG
+    level = logging.DEBUG if DEBUG else logging.INFO
 
-    if PROFILE is None:
-        log_path = '/logs/' + log_path
-        level = logging.INFO
-        # Configuración solo con archivo cuando PROFILE no está definido
-        logging.basicConfig(
-            handlers=[RotatingFileHandler(log_path, maxBytes=1000000, backupCount=10)],
-            level=level,
-            format='%(asctime)s %(message)s',
-            datefmt='%m/%d/%Y %H:%M:%S'
-        )
-    else:
-        # Configuración con archivo y salida estándar cuando PROFILE está definido
-        logging.basicConfig(
-            handlers=[
-                RotatingFileHandler(log_path, maxBytes=1000000, backupCount=10),
-                logging.StreamHandler(sys.stdout)
-            ],
-            level=level,
-            format='%(asctime)s %(message)s',
-            datefmt='%m/%d/%Y %H:%M:%S'
-        )
+    # Handlers: siempre escribe en archivo rotativo y en stdout (consola de Docker)
+    handlers = [
+        RotatingFileHandler(
+            LOG_PATH, maxBytes=1_000_000, backupCount=10, encoding="utf-8"
+        ),
+        logging.StreamHandler(sys.stdout),
+    ]
 
-    locale.setlocale(locale.LC_ALL, 'es_ES.UTF-8')
+    logging.basicConfig(
+        handlers=handlers,
+        level=level,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        datefmt="%m/%d/%Y %H:%M:%S",
+        force=True,
+    )
+
+    try:
+        locale.setlocale(locale.LC_ALL, "es_ES.UTF-8")
+    except locale.Error:
+        locale.setlocale(locale.LC_ALL, "")
