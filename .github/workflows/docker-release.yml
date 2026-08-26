@@ -1,4 +1,4 @@
-name: Docker Image
+name: Docker Image Release
 
 on:
   release:
@@ -11,17 +11,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
-
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Read version
-        id: version
-        run: echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
@@ -29,13 +20,12 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build Docker image
-        run: docker build --tag z0r3f/wallbot-docker:latest .
-
-      - name: Tag Docker image
-        run: docker tag z0r3f/wallbot-docker:latest z0r3f/wallbot-docker:${{ github.event.release.tag_name }}
-
-      - name: Push Docker images
-        run: |
-          docker push z0r3f/wallbot-docker:latest
-          docker push z0r3f/wallbot-docker:${{ github.event.release.tag_name }}
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            clonikal/wallbot-docker:latest
+            clonikal/wallbot-docker:${{ github.event.release.tag_name }}
