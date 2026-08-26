@@ -1,0 +1,16 @@
+services:
+  wallbot:
+    container_name: wallbot
+    image: wallbot:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./data:/data
+      - ./logs:/logs
+    environment:
+      - TZ=Europe/Madrid
+networks: {}

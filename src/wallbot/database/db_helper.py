@@ -1,195 +1,188 @@
 import logging
 import sqlite3
 import time
-from pathlib import Path
-from typing import List
+from typing import List, Optional
 
-from src.wallbot.config.settings import PROFILE
+from src.wallbot.config.settings import DATABASE_PATH
 from src.wallbot.database.models import ChatSearch, Item
 
 
 class DBHelper:
-    def __init__(self, dbname=None):
-        calculated_db_name = self.__get_db_name(dbname)
-        logging.info(f"DB: {calculated_db_name}")
-        self.__conn = sqlite3.connect(calculated_db_name, check_same_thread=False)
+    def __init__(self, dbname: Optional[str] = None):
+        self.db_path = dbname or DATABASE_PATH
+        logging.info("DB: %s", self.db_path)
 
-    @staticmethod
-    def __get_db_name(dbname=None) -> str:
-        if dbname is None:
-            if PROFILE is None:
-                dbname = "/data/db.sqlite"
-            else:
-                current_file = Path(__file__)
-                project_root = current_file.parent.parent.parent.parent
-                dbname = str(project_root / "db.sqlite")
-        return dbname
+        # timeout=30 evita bloqueos si dos hilos intentan escribir a la vez
+        self.__conn = sqlite3.connect(
+            self.db_path,
+            check_same_thread=False,
+            timeout=30.0
+        )
+        # Habilitar WAL mode para mejorar concurrencia entre hilos
+        self.__conn.execute("PRAGMA journal_mode = WAL;")
+        self.__conn.execute("PRAGMA synchronous = NORMAL;")
 
-    def setup(self, version=""):
-        tblstmtitem = "create table if not exists item " \
-                      "(itemId integer, " \
-                      "chatId text, " \
-                      "title text, " \
-                      "price text, " \
-                      "url text, " \
-                      "user text, " \
-                      "publishDate integer, " \
-                      "observaciones text, " \
-                      "item text, " \
-                      " primary key (itemId,chatId))"
-        self.__conn.execute(tblstmtitem)
+    def setup(self, version: str = ""):
+        with self.__conn:
+            self.__conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS item (
+                    itemId INTEGER,
+                    chatId TEXT,
+                    title TEXT,
+                    price TEXT,
+                    url TEXT,
+                    user TEXT,
+                    publishDate INTEGER,
+                    observaciones TEXT,
+                    item TEXT,
+                    PRIMARY KEY (itemId, chatId)
+                )
+                """
+            )
+            self.__conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS chat_search (
+                    chat_id TEXT,
+                    kws TEXT,
+                    cat_ids TEXT,
+                    min_price TEXT,
+                    max_price TEXT,
+                    dist TEXT DEFAULT '400',
+                    publish_date INTEGER DEFAULT 24,
+                    ord TEXT DEFAULT 'newest',
+                    username TEXT,
+                    name TEXT,
+                    active INTEGER DEFAULT 1
+                )
+                """
+            )
 
-        tblstmtchat = "create table if not exists chat_search " \
-                      "(chat_id text, " \
-                      "kws text, " \
-                      "cat_ids text, " \
-                      "min_price text, " \
-                      "max_price text, " \
-                      "dist text default \'400\', " \
-                      "publish_date integer default 24, " \
-                      "ord text default \'newest\', " \
-                      "username text, " \
-                      "name text, " \
-                      "active int default 1)"
-        self.__conn.execute(tblstmtchat)
+    def add_search(self, cs: ChatSearch):
+        fields = ["chat_id", "kws"]
+        values = [cs.chat_id, cs.kws]
 
-        if version == '1.0.6':
-            stmt = "update chat_search " \
-                   "set ord = \'newest\' " \
-                   "where ord = \'creationDate-des\'"
-            try:
-                self.__conn.execute(stmt)
-                self.__conn.commit()
-            except Exception as e:
-                logging.error(f"Error setting up the db: {e}")
+        optional_fields = [
+            ("cat_ids", cs.cat_ids),
+            ("min_price", cs.min_price),
+            ("max_price", cs.max_price),
+            ("dist", cs.dist),
+            ("publish_date", cs.publish_date),
+            ("ord", cs.orde),
+            ("username", cs.username),
+            ("name", cs.name),
+            ("active", cs.active),
+        ]
 
-        self.__conn.commit()
+        for col, val in optional_fields:
+            if val is not None:
+                fields.append(col)
+                values.append(val)
 
-    def add_search(self, chat_search):
-        stmt = "insert into chat_search (chat_id, kws"
-        valu = " values (?, ?"
-        args = (chat_search.chat_id, chat_search.kws)
-        if chat_search.cat_ids is not None:
-            stmt += ", cat_ids"
-            valu += ", ?"
-            args += (chat_search.cat_ids,)
-        if chat_search.min_price is not None:
-            stmt += ", min_price"
-            valu += ", ?"
-            args += (chat_search.min_price,)
-        if chat_search.max_price is not None:
-            stmt += ", max_price"
-            valu += ", ?"
-            args += (chat_search.max_price,)
-        if chat_search.dist is not None:
-            stmt += ", dist"
-            valu += ", ?"
-            args += (chat_search.dist,)
-        if chat_search.publish_date is not None:
-            stmt += ", publish_date"
-            valu += ", ?"
-            args += (chat_search.publish_date,)
-        if chat_search.orde is not None:
-            stmt += ", ord"
-            valu += ", ?"
-            args += (chat_search.orde,)
-        if chat_search.username is not None:
-            stmt += ", username"
-            valu += ", ?"
-            args += (chat_search.username,)
-        if chat_search.name is not None:
-            stmt += ", name"
-            valu += ", ?"
-            args += (chat_search.name,)
-        if chat_search.active is not None:
-            stmt += ", active"
-            valu += ", ?"
-            args += (chat_search.active,)
-        stmt += ")" + valu + ")"
+        cols_sql = ", ".join(fields)
+        placeholders = ", ".join("?" for _ in fields)
+        stmt = f"INSERT INTO chat_search ({cols_sql}) VALUES ({placeholders})"
+
         try:
-            self.__conn.execute(stmt, args)
-            self.__conn.commit()
-        except sqlite3.IntegrityError as e:
-            logging.error(f"Error adding chat search: {e}")
+            with self.__conn:
+                self.__conn.execute(stmt, values)
+        except sqlite3.Error as e:
+            logging.error("Error al añadir búsqueda: %s", e)
 
     def add_item(self, item_id, chat_id, title, price, url, user, publish_date=None, observaciones=None):
-        stmt = "insert into item (itemId, chatId, title, price, url, user, publishDate, observaciones) " \
-               "values (?, ?, ?, ?, ?, ?, ?, ?)"
-        args = (item_id, chat_id, title, price, url, user, publish_date, observaciones)
+        stmt = """
+            INSERT INTO item (itemId, chatId, title, price, url, user, publishDate, observaciones)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """
         try:
-            self.__conn.execute(stmt, args)
-            self.__conn.commit()
-        except Exception as e:
-            logging.error(f"Error adding item: {e}")
+            with self.__conn:
+                self.__conn.execute(stmt, (item_id, chat_id, title, price, url, user, publish_date, observaciones))
+        except sqlite3.Error as e:
+            logging.error("Error al guardar anuncio %s: %s", item_id, e)
 
     def update_item(self, item_id, price, obs):
-        stmt = "update item " \
-               "set price = ?, " \
-               "observaciones = ? " \
-               "where itemId = ?"
+        stmt = "UPDATE item SET price = ?, observaciones = ? WHERE itemId = ?"
         try:
-            self.__conn.execute(stmt, (price, obs, item_id))
-            self.__conn.commit()
-        except Exception as e:
-            logging.error(f"Error updating item: {e}")
+            with self.__conn:
+                self.__conn.execute(stmt, (price, obs, item_id))
+        except sqlite3.Error as e:
+            logging.error("Error al actualizar anuncio %s: %s", item_id, e)
 
-    def delete_items(self, hours_live):
-        millis = int(round(time.time() * 1000))
-        millis -= hours_live * 60 * 60 * 1000
-        stmt = "delete from item where publishDate < (?)"
-        args = (millis,)
+    def delete_items(self, hours_live: int):
+        cutoff_millis = int(round(time.time() * 1000)) - (hours_live * 3600 * 1000)
+        stmt = "DELETE FROM item WHERE publishDate < ?"
         try:
-            self.__conn.execute(stmt, args)
-            self.__conn.commit()
-        except Exception as e:
-            logging.error(f"Error deleting items older than {hours_live} hours: {e}")
+            with self.__conn:
+                self.__conn.execute(stmt, (cutoff_millis,))
+        except sqlite3.Error as e:
+            logging.error("Error al limpiar anuncios antiguos: %s", e)
 
-    def search_item(self, item_id, chat_id):
-        stmt = "select itemId, chatId, title, price, url, publishDate, observaciones, user " \
-               "from item where itemId = (?) and chatId = (?)"
-        args = (item_id, chat_id)
+    def search_item(self, item_id, chat_id) -> Optional[Item]:
+        stmt = """
+            SELECT itemId, chatId, title, price, url, publishDate, observaciones, user
+            FROM item WHERE itemId = ? AND chatId = ?
+        """
         try:
-            for row in self.__conn.execute(stmt, args):
-                i = Item(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7])
-                return i
-        except Exception as e:
-            logging.error(f"Error searching item: {e}")
+            cursor = self.__conn.cursor()
+            cursor.execute(stmt, (item_id, chat_id))
+            row = cursor.fetchone()
+            if row:
+                return Item(
+                    item_id=row[0],
+                    chat_id=row[1],
+                    title=row[2],
+                    price=row[3],
+                    url=row[4],
+                    publish_date=row[5],
+                    observaciones=row[6],
+                    user=row[7]
+                )
+        except sqlite3.Error as e:
+            logging.error("Error al consultar anuncio %s: %s", item_id, e)
         return None
 
-    def get_chat_searches(self, chat_id):
-        stmt = "select chat_id, kws, cat_ids, min_price, max_price, dist, publish_date, ord from chat_search " \
-               "where chat_id = ? and active = 1"
+    def get_chat_searches(self, chat_id) -> List[ChatSearch]:
+        stmt = """
+            SELECT chat_id, kws, cat_ids, min_price, max_price, dist, publish_date, ord
+            FROM chat_search WHERE chat_id = ? AND active = 1
+        """
         searches = []
         try:
-            for row in self.__conn.execute(stmt, (chat_id,)):
-                c = ChatSearch(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7])
-                searches.append(c)
-        except Exception as e:
-            logging.error(f"Error getting chat searches for chat_id {chat_id}: {e}")
+            cursor = self.__conn.cursor()
+            cursor.execute(stmt, (chat_id,))
+            for row in cursor.fetchall():
+                searches.append(ChatSearch(
+                    chat_id=row[0], kws=row[1], cat_ids=row[2],
+                    min_price=row[3], max_price=row[4], dist=row[5],
+                    publish_date=row[6], orde=row[7]
+                ))
+        except sqlite3.Error as e:
+            logging.error("Error al obtener búsquedas de chat %s: %s", chat_id, e)
         return searches
 
-    def get_chats_searches(self):
-        stmt = "select chat_id, kws, cat_ids, min_price, max_price, dist, publish_date, ord from chat_search " \
-               "where active = 1"
+    def get_chats_searches(self) -> List[ChatSearch]:
+        stmt = """
+            SELECT chat_id, kws, cat_ids, min_price, max_price, dist, publish_date, ord
+            FROM chat_search WHERE active = 1
+        """
         lista: List[ChatSearch] = []
         try:
-            for row in self.__conn.execute(stmt):
-                c = ChatSearch(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7])
-                lista.append(c)
-        except Exception as e:
-            logging.error(f"Error getting all chat searches: {e}")
-
-            for i in lista:
-                logging.debug(f"Chat: {i.chat_id} - Keywords: {i.kws} - Categories: {i.cat_ids} - "
-                              f"Min price: {i.min_price} - Max price: {i.max_price} - "
-                              f"Distance: {i.dist} - Publish date: {i.publish_date} - Order: {i.orde}")
-
+            cursor = self.__conn.cursor()
+            cursor.execute(stmt)
+            for row in cursor.fetchall():
+                lista.append(ChatSearch(
+                    chat_id=row[0], kws=row[1], cat_ids=row[2],
+                    min_price=row[3], max_price=row[4], dist=row[5],
+                    publish_date=row[6], orde=row[7]
+                ))
+        except sqlite3.Error as e:
+            logging.error("Error al obtener todas las búsquedas activas: %s", e)
         return lista
 
     def del_chat_search(self, chat_id, kws):
-        stmt = "update chat_search set active = 0 where chat_id = ? and kws = ?"
+        stmt = "UPDATE chat_search SET active = 0 WHERE chat_id = ? AND kws = ?"
         try:
-            self.__conn.execute(stmt, (chat_id, kws))
-            self.__conn.commit()
-        except Exception as e:
-            logging.error(f"Error deleting chat search for chat_id {chat_id} and kws {kws}: {e}")
+            with self.__conn:
+                self.__conn.execute(stmt, (chat_id, kws))
+        except sqlite3.Error as e:
+            logging.error("Error al desactivar búsqueda '%s' para chat %s: %s", kws, chat_id, e)

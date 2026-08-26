@@ -1,9 +1,12 @@
-ICON_VIDEO_GAMES = u'\U0001F3AE'  # 🎮
-ICON_WARNING = u'\U000026A0'  # ⚠️
-ICON_HIGH_VOLTAGE = u'\U000026A1'  # ⚡️
-ICON_COLLISION = u'\U0001F4A5'  # 💥
-ICON_EXCLAMATION = u'\U00002757'  # ❗
-ICON_DIRECT_HIT = u'\U0001F3AF'  # 🎯
+# Emojis e Iconos
+ICON_VIDEO_GAMES = "🎮"
+ICON_WARNING = "⚠️"
+ICON_HIGH_VOLTAGE = "⚡"
+ICON_COLLISION = "💥"
+ICON_EXCLAMATION = "❗"
+ICON_DIRECT_HIT = "🎯"
 
-SEARCH_INTERVAL = 300  # 5 minutes
+# Tiempos de ejecución (en segundos)
+SEARCH_INTERVAL = 300   # 5 minutos entre rondas de búsqueda
+HTTP_TIMEOUT = 15       # Timeout razonable para llamadas HTTP (Wallapop/Telegram)
 TIMEOUT = 3000

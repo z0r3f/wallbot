@@ -1,21 +1,21 @@
 <!-- Docker Badges -->
-[![Docker Image Size (latest by date)](https://img.shields.io/docker/image-size/z0r3f/wallbot-docker)](https://hub.docker.com/r/z0r3f/wallbot-docker)
-[![Docker pulls](https://img.shields.io/docker/pulls/z0r3f/wallbot-docker?style=flat-square)](https://hub.docker.com/r/z0r3f/wallbot-docker)
-[![Docker Image Version (latest by date)](https://img.shields.io/docker/v/z0r3f/wallbot-docker)](https://hub.docker.com/r/z0r3f/wallbot-docker)
+[![Docker Image Size (latest by date)](https://img.shields.io/docker/image-size/clonikal/wallbot-docker)](https://hub.docker.com/r/clonikal/wallbot-docker)
+[![Docker pulls](https://img.shields.io/docker/pulls/clonikal/wallbot-docker?style=flat-square)](https://hub.docker.com/r/clonikal/wallbot-docker)
+[![Docker Image Version (latest by date)](https://img.shields.io/docker/v/clonikal/wallbot-docker)](https://hub.docker.com/r/clonikal/wallbot-docker)
 
 <!-- GitHub Actions Badges -->
-[![Docker Release](https://github.com/z0r3f/wallbot/actions/workflows/docker-release.yml/badge.svg)](https://github.com/z0r3f/wallbot/actions/workflows/docker-release.yml)
-[![Build Status](https://github.com/z0r3f/wallbot/actions/workflows/main.yml/badge.svg)](https://github.com/z0r3f/wallbot/actions/workflows/main.yml)
+[![Docker Release](https://github.com/clonikal/wallbot/actions/workflows/docker-release.yml/badge.svg)](https://github.com/clonikal/wallbot/actions/workflows/docker-release.yml)
+[![Build Status](https://github.com/clonikal/wallbot/actions/workflows/main.yml/badge.svg)](https://github.com/clonikal/wallbot/actions/workflows/main.yml)
 
-[//]: # ([![Codecov]&#40;https://codecov.io/gh/z0r3f/wallbot/branch/main/graph/badge.svg&#41;]&#40;https://codecov.io/gh/z0r3f/wallbot&#41;)
+[//]: # ([![Codecov]&#40;https://codecov.io/gh/clonikal/wallbot/branch/main/graph/badge.svg&#41;]&#40;https://codecov.io/gh/clonikal/wallbot&#41;)
 
 <!-- Proyecto y actividad -->
-[![commit_freq](https://img.shields.io/github/commit-activity/m/z0r3f/wallbot?style=flat-square)](https://github.com/z0r3f/wallbot/commits)
-[![last_commit](https://img.shields.io/github/last-commit/z0r3f/wallbot?style=flat-square)](https://github.com/z0r3f/wallbot/commits)
-[![Python Version](https://img.shields.io/pypi/pyversions/wallbot-docker)](https://github.com/z0r3f/wallbot)
+[![commit_freq](https://img.shields.io/github/commit-activity/m/clonikal/wallbot?style=flat-square)](https://github.com/clonikal/wallbot/commits)
+[![last_commit](https://img.shields.io/github/last-commit/clonikal/wallbot?style=flat-square)](https://github.com/clonikal/wallbot/commits)
+[![Python Version](https://img.shields.io/pypi/pyversions/wallbot-docker)](https://github.com/clonikal/wallbot)
 
 <!-- Licencia -->
-![GitHub](https://img.shields.io/github/license/z0r3f/wallbot)
+![GitHub](https://img.shields.io/github/license/clonikal/wallbot)
 
 # wallbot
 
@@ -34,7 +34,7 @@ pip3 install -r requirements.txt
 ## Generate image docker
 
 ```bash
-docker build --tag z0r3f/wallbot-docker:latest .
+docker build --tag clonikal/wallbot-docker:latest .
 ```
 
 ## Tag version
@@ -54,14 +54,14 @@ version=`cat VERSION`
 ###### Tag
 
 ```bash
-docker tag z0r3f/wallbot-docker:latest z0r3f/wallbot-docker:$version
+docker tag clonikal/wallbot-docker:latest clonikal/wallbot-docker:$version
 ```
 
 ###### Push
 
 ```bash
-docker push z0r3f/wallbot-docker:latest 
-docker push z0r3f/wallbot-docker:$version
+docker push clonikal/wallbot-docker:latest 
+docker push clonikal/wallbot-docker:$version
 ```
 
 ## See images
@@ -73,13 +73,13 @@ docker images
 ## Run on container
 
 ```bash
-docker run --name wallbot --env BOT_TOKEN=<YOUR-TOKEN> z0r3f/wallbot-docker:latest
+docker run --name wallbot --env BOT_TOKEN=<YOUR-TOKEN> AUTHORIZED_USERS=<CHAT_ID[,CHAT_ID]> clonikal/wallbot-docker:latest
 ```
 
 ## Export image
 
 ```bash
-docker save -o wallbot-docker.tar z0r3f/wallbot-docker:latest
+docker save -o wallbot-docker.tar clonikal/wallbot-docker:latest
 ```
 
 ## Target Project Structure

@@ -1,87 +1,101 @@
 import locale
 import logging
 import time
-from decimal import Decimal
-from re import sub
-from typing import List
+from typing import Any, Dict, List
 
 from src.wallbot.config.constants import SEARCH_INTERVAL
-from src.wallbot.database.models import ChatSearch
+from src.wallbot.database.db_helper import DBHelper
+from src.wallbot.database.models import ChatSearch, Item
 from src.wallbot.telegram.notifications import notel
 from src.wallbot.wallapop.api_client import WallapopClient
 
 
-class WallapopMonitor:
-    def __init__(self, db):
-        """
-        Inicializa el monitor de Wallapop
+def _format_currency(value: Any) -> str:
+    try:
+        return locale.currency(float(value), grouping=True)
+    except (ValueError, TypeError):
+        return f"{value} €"
 
-        Args:
-            db: Instancia de DBHelper para acceso a la base de datos
-        """
+
+class WallapopMonitor:
+    def __init__(self, db: DBHelper):
         self.db = db
         self.client = WallapopClient()
         self.is_running = False
 
     def start(self):
-        """Inicia el bucle de monitoreo"""
         self.is_running = True
-        logging.info("Iniciando monitoreo de Wallapop...")
+        logging.info("Iniciando monitoreo continuo de Wallapop...")
 
         while self.is_running:
             try:
                 self._monitor_cycle()
-                time.sleep(SEARCH_INTERVAL)
-            except KeyboardInterrupt:
-                logging.info("Deteniendo monitoreo...")
-                self.stop()
             except Exception as e:
-                logging.error(f"Error en ciclo de monitoreo: {e}")
-                time.sleep(SEARCH_INTERVAL)
+                logging.error("Error inesperado en ciclo de monitoreo: %s", e)
+
+            # Pausa antes del siguiente escaneo completo
+            time.sleep(SEARCH_INTERVAL)
 
     def stop(self):
-        """Detiene el monitoreo"""
         self.is_running = False
         logging.info("Monitoreo detenido")
 
     def _monitor_cycle(self):
-        """Ejecuta un ciclo completo de monitoreo"""
         searches: List[ChatSearch] = self.db.get_chats_searches()
+        if not searches:
+            return
 
         for search in searches:
+            if not self.is_running:
+                break
+
             try:
                 response = self.client.search_items(search)
-                logging.info(f"Respuesta de API: {response}")
                 if response:
                     self._handle_response(search, response)
             except Exception as e:
-                logging.error(f"Error procesando búsqueda para chat `{search.chat_id}`: {e}")
+                logging.error("Error procesando búsqueda '%s' para chat %s: %s", search.kws, search.chat_id, e)
 
-    def _handle_response(self, search, response):
-        """Procesa la respuesta de la API de Wallapop"""
+            # Pequeño retardo entre cada búsqueda para no saturar la API
+            time.sleep(1.5)
+
+    def _handle_response(self, search: ChatSearch, response: Dict[str, Any]):
         try:
-            items = response['data']['section']['payload']['items']
+            # Estructura típica de items en API v3
+            items = (
+                response.get("data", {})
+                .get("section", {})
+                .get("payload", {})
+                .get("items", [])
+            )
 
             for item in items:
-                self._process_item(item, search.chat_id)
+                # Saltar items publicitarios o sin ID
+                if not item.get("id"):
+                    continue
+                self._process_item(item, str(search.chat_id))
 
-        except (KeyError, ValueError) as e:
-            logging.error(f"Error procesando respuesta de API: {e}")
+        except Exception as e:
+            logging.error("Error extrayendo items de la respuesta: %s", e)
 
-    def _process_item(self, item, chat_id):
-        """Procesa un item individual"""
-        item_id = item['id']
-        item_price = item['price']['amount']
-        item_title = item['title']
-        item_user = item['user_id']
-        item_web_slug = item['web_slug']
+    def _process_item(self, item: Dict[str, Any], chat_id: str):
+        item_id = item["id"]
+        
+        # Extracción segura de precio
+        price_info = item.get("price", {})
+        item_price = price_info.get("amount") if isinstance(price_info, dict) else item.get("price")
+        if item_price is None:
+            return
 
-        logging.info(
-            'Encontrado: id=%s, price=%s, title=%s, user=%s',
-            str(item_id),
-            locale.currency(item_price, grouping=True),
+        item_title = item.get("title", "Sin título")
+        item_user = item.get("user_id", "")
+        item_web_slug = item.get("web_slug", str(item_id))
+
+        logging.debug(
+            "Item encontrado: id=%s, price=%s, title=%s",
+            item_id,
+            _format_currency(item_price),
             item_title,
-            item_user
         )
 
         existing_item = self.db.search_item(item_id, chat_id)
@@ -91,38 +105,36 @@ class WallapopMonitor:
         else:
             self._process_price_update(existing_item, item_id, item_price, item_title, item_web_slug, chat_id)
 
-    def _process_new_item(self, item_id, chat_id, title, price, web_slug, user_id):
-        """Procesa un item nuevo encontrado"""
-        self.db.add_item(item_id, chat_id, title, price, web_slug, user_id)
+    def _process_new_item(self, item_id: int, chat_id: str, title: str, price: Any, web_slug: str, user_id: str):
+        self.db.add_item(item_id, chat_id, title, str(price), web_slug, user_id)
         notel(chat_id, price, title, web_slug)
         logging.info(
-            'New: id=%s, price=%s, title=%s',
-            str(item_id),
-            locale.currency(price, grouping=True),
-            title
+            "NUEVO ANUNCIO: id=%s, price=%s, title=%s",
+            item_id,
+            _format_currency(price),
+            title,
         )
 
-    def _process_price_update(self, existing_item, item_id, new_price, title, web_slug, chat_id):
-        """Procesa una actualización de precio"""
-        # Convertir precios a decimales para comparación
-        new_price_decimal = Decimal(sub(r'[^\d.]', '', str(new_price)))
-        old_price_decimal = Decimal(sub(r'[^\d.]', '', existing_item.price))
+    def _process_price_update(self, existing: Item, item_id: int, new_price: Any, title: str, web_slug: str, chat_id: str):
+        try:
+            new_p = float(new_price)
+            old_p = float(existing.price)
+        except (ValueError, TypeError):
+            return
 
-        if new_price_decimal < old_price_decimal:
-            # Construir historial de precios
-            price_history = locale.currency(existing_item.price, grouping=True)
-            if existing_item.observaciones:
-                price_history += ' < ' + existing_item.observaciones
+        # Solo notificar y actualizar si el precio ha bajado
+        if new_p < old_p:
+            price_history = _format_currency(existing.price)
+            if existing.observaciones:
+                price_history += f" < {existing.observaciones}"
 
-            # Actualizar item en base de datos
             self.db.update_item(item_id, str(new_price), price_history)
-
-            # Notificar cambio de precio
-            notel(chat_id, new_price, title, web_slug, ' < ' + price_history)
+            notel(chat_id, new_price, title, web_slug, f" < {price_history}")
 
             logging.info(
-                'Baja: id=%s, price=%s, title=%s',
-                str(item_id),
-                locale.currency(new_price, grouping=True),
-                title
+                "BAJADA DE PRECIO: id=%s, %s -> %s, title=%s",
+                item_id,
+                _format_currency(old_p),
+                _format_currency(new_p),
+                title,
             )
